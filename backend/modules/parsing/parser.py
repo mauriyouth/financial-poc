@@ -1,5 +1,9 @@
+from pathlib import Path
+from typing import Union, Iterable, Dict, Any
+
 from docling.datamodel.accelerator_options import AcceleratorOptions
-from docling.datamodel.base_models import InputFormat
+from docling.datamodel.base_models import DocumentStream, InputFormat
+from docling.datamodel.document import ConversionResult
 from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
     PictureDescriptionVlmOptions,
@@ -74,3 +78,28 @@ class Parser:
                 # can be added by creating corresponding format options and pipeline options
             },
         )
+
+    @staticmethod
+    def _format_result(result: ConversionResult) -> Dict[str, Any]:
+        status = result.status
+        num_pages = len(result.pages)
+        conf = result.confidence.mean_score
+        doc = result.document
+
+        return {
+            "status": status,
+            "num_pages": num_pages,
+            "conf": conf,
+            "document": doc,
+        }
+
+    def parse(self, source: Union[Path, str, DocumentStream]):
+        """Parse the given file and return a Document object."""
+        result = self.converter.convert(source)
+        return self._format_result(result)
+
+    def parse_all(self, source: Iterable[Union[Path, str, DocumentStream]]):
+        """Parse all the given files and return a list of Document objects."""
+        results = self.converter.convert_all(source)
+        for result in results:
+            yield self._format_result(result)
