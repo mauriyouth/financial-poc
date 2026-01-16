@@ -1,0 +1,3 @@
+docling[easyocr,rapidocr,vlm]
+rapidocr-onnxruntime
+huggingface[hf_xet]
