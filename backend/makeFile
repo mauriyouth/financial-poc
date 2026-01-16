@@ -1,0 +1,4 @@
+.PHONY: api
+
+api:
+	uv run uvicorn src.api.main:app --reload
