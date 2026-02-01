@@ -1,0 +1,13 @@
+{
+  "base_url": "/user/paddle/",
+  "hostname": "127.0.0.1",
+  "password": false,
+  "pid": 336,
+  "port": 40129,
+  "root_dir": "/home/paddle",
+  "secure": false,
+  "sock": "",
+  "token": "6a17965aa0504d5a9a8de6739c1f3920",
+  "url": "http://127.0.0.1:40129/user/paddle/",
+  "version": "2.14.2"
+}

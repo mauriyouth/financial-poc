@@ -1,0 +1,192 @@
+[
+  {
+    "text": "CREDIT AGREEMENT among",
+    "bbox": {
+      "x0": 241.86,
+      "y0": 600.732,
+      "x1": 373.092,
+      "y1": 563.352,
+      "page": 1,
+      "width": 131.23199999999997,
+      "height": -37.379999999999995
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/0"
+    }
+  },
+  {
+    "text": "TALF LLC, as Borrower,",
+    "bbox": {
+      "x0": 272.64,
+      "y0": 531.732,
+      "x1": 342.302,
+      "y1": 508.152,
+      "page": 1,
+      "width": 69.66200000000003,
+      "height": -23.579999999999984
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/1"
+    }
+  },
+  {
+    "text": "FEDERAL RESERVE BANK OF NEW YORK, as Controlling Party,",
+    "bbox": {
+      "x0": 181.92,
+      "y0": 476.532,
+      "x1": 433.018,
+      "y1": 452.952,
+      "page": 1,
+      "width": 251.09799999999998,
+      "height": -23.579999999999984
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/2"
+    }
+  },
+  {
+    "text": "FEDERAL RESERVE BANK OF NEW YORK, as the Senior Lender",
+    "bbox": {
+      "x0": 181.92,
+      "y0": 407.532,
+      "x1": 433.018,
+      "y1": 383.952,
+      "page": 1,
+      "width": 251.09799999999998,
+      "height": -23.579999999999984
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/3"
+    }
+  },
+  {
+    "text": "and",
+    "bbox": {
+      "x0": 296.34,
+      "y0": 338.532,
+      "x1": 318.652,
+      "y1": 328.752,
+      "page": 1,
+      "width": 22.312000000000012,
+      "height": -9.779999999999973
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/4"
+    }
+  },
+  {
+    "text": "UNITED STATES DEPARTMENT OF THE TREASURY, as the Subordinated Lender",
+    "bbox": {
+      "x0": 153.96,
+      "y0": 283.332,
+      "x1": 460.966,
+      "y1": 259.75199999999995,
+      "page": 1,
+      "width": 307.006,
+      "height": -23.58000000000004
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/5"
+    }
+  },
+  {
+    "text": "Dated as of March 3, 2009",
+    "bbox": {
+      "x0": 238.98,
+      "y0": 228.13200000000006,
+      "x1": 375.9,
+      "y1": 218.35199999999998,
+      "page": 1,
+      "width": 136.92,
+      "height": -9.780000000000086
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/6"
+    }
+  },
+  {
+    "text": "EXECUTION COPY",
+    "bbox": {
+      "x0": 394.38,
+      "y0": 716.712,
+      "x1": 504.012,
+      "y1": 706.932,
+      "page": 1,
+      "width": 109.632,
+      "height": -9.779999999999973
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 1,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/7"
+    }
+  },
+  {
+    "text": "TABLE OF CONTENTS",
+    "bbox": {
+      "x0": 241.32,
+      "y0": 690.912,
+      "x1": 373.674,
+      "y1": 681.132,
+      "page": 2,
+      "width": 132.35399999999998,
+      "height": -9.780000000000086
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 2,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/9"
+    }
+  },
+  {
+    "text": "PAGE",
+    "bbox": {
+      "x0": 477.84,
+      "y0": 655.932,
+      "x1": 507.0,
+      "y1": 646.152,
+      "page": 2,
+      "width": 29.160000000000025,
+      "height": -9.779999999999973
+    },
+    "chunk_type": "section_header",
+    "metadata": {
+      "label": "section_header",
+      "page": 2,
+      "parent": "cref='#/body'",
+      "self_ref": "#/texts/10"
+    }
+  }
+]

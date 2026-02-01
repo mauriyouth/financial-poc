@@ -1,0 +1,341 @@
+"use client";
+
+import React, { useRef, useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Paperclip, Sparkles, Send, Loader2, UploadCloud, ChevronDown } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
+import dynamic from 'next/dynamic';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { uploadDocument, DocumentMetadata } from '@/lib/api/documents';
+import { improvePrompt, getModels, Model } from '@/lib/api/chat';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+
+import { FileThumbnail } from '@/components/file-thumbnail';
+
+// Adapter to make File compatible with DocumentMetadata for preview
+const fileToMetadata = (file: File): DocumentMetadata => ({
+    id: 'temp-' + file.name,
+    filename: file.name,
+    upload_date: new Date().toISOString(),
+    status: 'pending',
+    file_type: file.type
+});
+
+export type DataSource = 'web' | 'knowledge' | 'uploaded';
+
+interface ChatInputProps {
+    value: string;
+    onChange: (value: string) => void;
+    onSend: (message: string, attachments?: DocumentMetadata[]) => void;
+    isLoading?: boolean;
+    placeholder?: string;
+    showDataSourceSelector?: boolean;
+    dataSource?: DataSource;
+    onDataSourceChange?: (source: DataSource) => void;
+    model?: string;
+    onModelChange?: (model: string) => void;
+    className?: string;
+}
+
+interface AttachedDocument {
+    id: string;
+    file: File;
+    metadata?: DocumentMetadata;
+    isUploading: boolean;
+}
+
+export function ChatInput({
+    value,
+    onChange,
+    onSend,
+    isLoading = false,
+    placeholder = "Message...",
+    showDataSourceSelector = false,
+    dataSource = 'knowledge',
+    onDataSourceChange,
+    model,
+    onModelChange,
+    className
+}: ChatInputProps) {
+    const [attachedDocs, setAttachedDocs] = useState<AttachedDocument[]>([]);
+    const [isImproving, setIsImproving] = useState(false);
+    const [uploadOpen, setUploadOpen] = useState(false);
+    const [models, setModels] = useState<Model[]>([]);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Fetch models on mount
+    useEffect(() => {
+        getModels()
+            .then((data) => {
+                if (data.length > 0) {
+                    setModels(data);
+                } else {
+                    // Fallback defaults
+                    setModels([
+                        { id: 'anthropic', name: 'Claude 3.5 Sonnet' },
+                        { id: 'google', name: 'Gemini 1.5 Pro' }
+                    ]);
+                }
+            })
+            .catch((err) => {
+                console.error("Failed to fetch models", err);
+                // Fallback on error
+                setModels([
+                    { id: 'anthropic', name: 'Claude 3.5 Sonnet' },
+                    { id: 'google', name: 'Gemini 1.5 Pro' }
+                ]);
+            });
+    }, []);
+
+    const onDrop = async (acceptedFiles: File[]) => {
+        const newDocs: AttachedDocument[] = acceptedFiles.map(file => ({
+            id: Math.random().toString(36).substring(7),
+            file,
+            isUploading: true
+        }));
+
+        setAttachedDocs(prev => [...prev, ...newDocs]);
+        setUploadOpen(false);
+
+        for (const doc of newDocs) {
+            try {
+                const metadata = await uploadDocument(doc.file);
+                setAttachedDocs(prev => prev.map(d =>
+                    d.id === doc.id ? { ...d, metadata, isUploading: false } : d
+                ));
+            } catch (error) {
+                console.error("Upload failed for", doc.file.name, error);
+                setAttachedDocs(prev => prev.filter(d => d.id !== doc.id));
+            }
+        }
+    };
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        noClick: false,
+        noKeyboard: true
+    });
+
+    const handleSend = () => {
+        const validAttachments = attachedDocs
+            .filter(d => !d.isUploading && d.metadata)
+            .map(d => d.metadata!);
+
+        if ((!value.trim() && validAttachments.length === 0) || isLoading) return;
+
+        onSend(value, validAttachments);
+        onChange('');
+        setAttachedDocs([]);
+
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onChange(e.target.value);
+        e.target.style.height = 'auto';
+        e.target.style.height = `${e.target.scrollHeight}px`;
+    };
+
+    const handleImprovePrompt = async () => {
+        if (!value.trim() || isImproving) return;
+
+        setIsImproving(true);
+        try {
+            const improved = await improvePrompt(value, undefined, model);
+            onChange(improved);
+
+            if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto';
+                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+            }
+        } catch (error) {
+            console.error("Failed to improve prompt", error);
+        } finally {
+            setIsImproving(false);
+        }
+    };
+
+    const removeDoc = (id: string) => {
+        setAttachedDocs(prev => prev.filter(d => d.id !== id));
+    };
+
+    const isUploading = attachedDocs.some(d => d.isUploading);
+
+    return (
+        <div className={cn("space-y-4", className)}>
+            {/* Attached Files Previews */}
+            {attachedDocs.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-1">
+                    {attachedDocs.map((doc) => (
+                        <div key={doc.id} className="relative group">
+                            <FileThumbnail
+                                file={doc.metadata || fileToMetadata(doc.file)}
+                                onRemove={() => removeDoc(doc.id)}
+                                showRemove={true}
+                            />
+                            {doc.isUploading && (
+                                <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-md">
+                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Input Container */}
+            <div className="bg-card border rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-ring/20 transition-all overflow-hidden flex flex-col">
+                <Textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={handleInput}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder}
+                    className="min-h-[60px] max-h-[200px] border-none shadow-none focus-visible:ring-0 resize-none py-3 px-4 text-base"
+                    disabled={isLoading}
+                    rows={1}
+                />
+
+                {/* Toolbar */}
+                <div className="flex items-center justify-between p-2 bg-muted/30 border-t border-border/50">
+                    <div className="flex items-center gap-1">
+                        {/* Model Selector */}
+                        {onModelChange && models.length > 0 && (
+                            <>
+                                <Select value={model} onValueChange={onModelChange}>
+                                    <SelectTrigger className="h-8 w-[180px] border-0 bg-transparent hover:bg-accent/50 focus:ring-0 text-xs font-medium text-muted-foreground">
+                                        <SelectValue placeholder="Select model" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {models.map(m => (
+                                            <SelectItem key={m.id} value={m.id} className="text-xs">
+                                                {m.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Separator orientation="vertical" className="h-4 mx-1" />
+                            </>
+                        )}
+
+                        {/* Data Source Selector */}
+                        {showDataSourceSelector && onDataSourceChange && (
+                            <Select value={dataSource} onValueChange={onDataSourceChange}>
+                                <SelectTrigger className="h-8 w-auto min-w-[130px] border-0 bg-transparent hover:bg-accent/50 focus:ring-0 text-xs font-medium text-muted-foreground gap-2">
+                                    <div className="flex items-center gap-2 truncate">
+                                        {dataSource === 'web' && <span>🌐 Web Search</span>}
+                                        {dataSource === 'knowledge' && <span>📚 Knowledge</span>}
+                                        {dataSource === 'uploaded' && <span>📎 Uploads Only</span>}
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="web" className="text-xs">
+                                        <span className="flex items-center gap-2">🌐 Web Search</span>
+                                    </SelectItem>
+                                    <SelectItem value="knowledge" className="text-xs">
+                                        <span className="flex items-center gap-2">📚 Knowledge Base</span>
+                                    </SelectItem>
+                                    <SelectItem value="uploaded" className="text-xs">
+                                        <span className="flex items-center gap-2">📎 Uploads Only</span>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+
+                        {/* Upload Button */}
+                        <Popover open={uploadOpen} onOpenChange={setUploadOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 ml-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-accent/50"
+                                    disabled={isLoading}
+                                    title="Attach file"
+                                >
+                                    <Paperclip className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-0" side="top" align="start">
+                                <div className="p-4 space-y-4">
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-sm">Upload Document</h4>
+                                        <p className="text-xs text-muted-foreground">Drag & drop files or click to browse</p>
+                                    </div>
+                                    <div
+                                        {...getRootProps()}
+                                        className={cn(
+                                            "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors hover:bg-accent/50",
+                                            isDragActive ? "border-primary bg-accent" : "border-muted-foreground/25"
+                                        )}
+                                    >
+                                        <Input {...getInputProps()} className="hidden" />
+                                        <div className="flex flex-col items-center gap-2">
+                                            <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                                            <p className="text-sm font-medium text-muted-foreground">
+                                                {isDragActive ? "Drop files here" : "Click or drag files"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-center text-muted-foreground">
+                                        Supports PDF, Images, Excel, Word, PowerPoint
+                                    </p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+
+                        {/* Improve Prompt Button */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full hover:bg-accent/50"
+                            onClick={handleImprovePrompt}
+                            disabled={isLoading || !value.trim() || isImproving}
+                            title="Improve prompt with AI"
+                        >
+                            {isImproving ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Sparkles className="h-4 w-4" />
+                            )}
+                        </Button>
+                    </div>
+
+                    {/* Send Button */}
+                    <Button
+                        onClick={handleSend}
+                        disabled={isLoading || (!value.trim() && attachedDocs.length === 0) || isUploading}
+                        size="sm"
+                        className="h-8 px-3 rounded-lg text-xs font-medium transition-all"
+                    >
+                        Send
+                        <Send className="h-3 w-3 ml-2" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Helper Text */}
+            <div className="text-center text-xs text-muted-foreground/50">
+                AI available tools: Python Code Interpreter, Web Search, Knowledge Base Retrieval
+            </div>
+        </div>
+    );
+}

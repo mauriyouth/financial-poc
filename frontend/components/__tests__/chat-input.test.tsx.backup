@@ -1,0 +1,97 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { ChatInput } from '../chat-input';
+import * as ChatApi from '@/lib/api/chat';
+
+// Mock API
+jest.mock('@/lib/api/chat', () => ({
+    getModels: jest.fn(),
+    improvePrompt: jest.fn(),
+    uploadDocument: jest.fn(),
+}));
+
+describe('ChatInput', () => {
+    const mockOnSend = jest.fn();
+    const mockOnChange = jest.fn();
+    const mockStopPropagation = jest.fn();
+    const mockOnDataSourceChange = jest.fn();
+    const mockOnModelChange = jest.fn();
+
+    const defaultProps = {
+        value: '',
+        onChange: mockOnChange,
+        onSend: mockOnSend,
+        onDataSourceChange: mockOnDataSourceChange,
+        onModelChange: mockOnModelChange,
+        showDataSourceSelector: true,
+        model: 'anthropic'
+    };
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (ChatApi.getModels as jest.Mock).mockResolvedValue([
+            { id: 'anthropic', name: 'Claude' },
+            { id: 'google', name: 'Gemini' }
+        ]);
+    });
+
+    it('renders text area and buttons', async () => {
+        render(<ChatInput {...defaultProps} />);
+
+        expect(screen.getByPlaceholderText(/message/i)).toBeInTheDocument();
+        expect(screen.getByTitle(/attach/i)).toBeInTheDocument();
+        expect(screen.getByTitle(/improve/i)).toBeInTheDocument();
+        // Send button might be disabled initially
+        expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
+    });
+
+    it('handles text input', () => {
+        render(<ChatInput {...defaultProps} />);
+
+        const textarea = screen.getByPlaceholderText(/message/i);
+        fireEvent.change(textarea, { target: { value: 'Hello' } });
+
+        expect(mockOnChange).toHaveBeenCalledWith('Hello');
+    });
+
+    it('submits on click send', () => {
+        render(<ChatInput {...defaultProps} value="Hello world" />);
+
+        const sendButton = screen.getByRole('button', { name: /send/i });
+        expect(sendButton).not.toBeDisabled();
+
+        fireEvent.click(sendButton);
+        expect(mockOnSend).toHaveBeenCalledWith('Hello world', []);
+        expect(mockOnChange).toHaveBeenCalledWith('');
+    });
+
+    it('loads and displays models', async () => {
+        render(<ChatInput {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(ChatApi.getModels).toHaveBeenCalled();
+        });
+
+        // Trigger the select dropdown
+        // Note: interacting with Radix UI Select in tests can be tricky. 
+        // We verify the selector is present.
+        expect(screen.getByText('Claude')).toBeInTheDocument();
+    });
+
+    it('shows fallback models if API fails', async () => {
+        (ChatApi.getModels as jest.Mock).mockRejectedValue(new Error('Failed'));
+        render(<ChatInput {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByText('Claude 3.5 Sonnet')).toBeInTheDocument();
+        });
+    });
+
+    it('displays attached files', async () => {
+        render(<ChatInput {...defaultProps} />);
+        expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    });
+
+    // Note: detailed interaction testing with Radix UI Select requires more complex setup
+    // (userEvent, pointer events) which is flaky in this environment.
+    // We rely on the fact that the selector renders the correct models.
+});
