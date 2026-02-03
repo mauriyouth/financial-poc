@@ -2,8 +2,9 @@
 Logging configuration for the application using loguru.
 """
 
-from loguru import logger
 import sys
+
+from loguru import logger
 
 # Remove default handler
 logger.remove()

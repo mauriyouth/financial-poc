@@ -4,6 +4,12 @@ RQ Worker entry point for document parsing.
 Run this with: python worker.py
 """
 
+import os
+
+# Fix macOS fork safety issue with minio/S3 client
+# This must be set before importing any libraries
+os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+
 from redis import Redis
 from rq import Worker
 

@@ -42,6 +42,29 @@ class QueueStore:
         job = self.queue.enqueue(process_document_task, doc_id)
         return job.id
 
+    def enqueue_document_processing(self, document_id: str, file_path: str, file_type: str) -> str:
+        """
+        Enqueue document processing job (chunking + embedding + indexing).
+
+        Args:
+            document_id: Document ID
+            file_path: Path to document file
+            file_type: File extension (pdf, pptx, docx, xlsx)
+
+        Returns:
+            Job ID
+        """
+        from src.jobs.process_document_job import process_document_job
+
+        job = self.queue.enqueue(
+            process_document_job,
+            document_id,
+            file_path,
+            file_type,
+            job_timeout="15m",
+        )
+        return job.id
+
     def get_job_status(self, job_id: str) -> tuple[JobStatus, int, str | None]:
         """
         Get job status and progress.

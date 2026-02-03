@@ -2,16 +2,27 @@ import React from 'react';
 import { FileText } from 'lucide-react';
 import { MarkdownContent } from '@/components/markdown-content';
 import { DocumentMetadata } from '@/lib/api/documents';
+import { Citation } from '@/lib/api/chat';
 import { Badge } from '@/components/ui/badge';
+import { MessageContent } from './MessageContent';
 
 interface AssistantMessageProps {
     content: string;
     thinkingSteps?: string[];
     sources?: DocumentMetadata[];
+    citations?: Citation[];  // NEW: Citations with bbox
     onSourceClick?: (source: DocumentMetadata) => void;
+    onCitationClick?: (citation: Citation) => void;  // NEW: Citation click handler
 }
 
-export function AssistantMessage({ content, thinkingSteps, sources, onSourceClick }: AssistantMessageProps) {
+export function AssistantMessage({
+    content,
+    thinkingSteps,
+    sources,
+    citations,
+    onSourceClick,
+    onCitationClick
+}: AssistantMessageProps) {
     return (
         <div className="flex-1 min-w-0">
             {thinkingSteps && thinkingSteps.length > 0 && (
@@ -33,9 +44,17 @@ export function AssistantMessage({ content, thinkingSteps, sources, onSourceClic
                 </details>
             )}
 
-            {/* Message Text */}
+            {/* Message Text*/}
             <div className="text-sm leading-relaxed max-w-full overflow-hidden">
-                {content && <MarkdownContent content={content} />}
+                {content && citations && citations.length > 0 ? (
+                    <MessageContent
+                        content={content}
+                        citations={citations}
+                        onCitationClick={onCitationClick || (() => { })}
+                    />
+                ) : (
+                    <MarkdownContent content={content} />
+                )}
             </div>
 
             {/* Source Citations */}

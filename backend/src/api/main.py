@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.endpoints import chat, documents, hello
+from src.api.endpoints import chat, documents, hello, websocket
 from src.core.database import create_db_and_tables
 
 
@@ -29,3 +29,4 @@ app.add_middleware(
 app.include_router(hello.router)
 app.include_router(documents.router, prefix="/documents", tags=["documents"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(websocket.router, tags=["websocket"])  # WebSocket endpoint

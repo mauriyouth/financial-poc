@@ -1,26 +1,35 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class RedisSettings(BaseSettings):
     """Redis configuration settings for queue management."""
 
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_PASSWORD: str | None = None
+    REDIS_HOST: str = Field(..., description="Redis/Valkey host")
+    REDIS_PORT: int = Field(..., description="Redis/Valkey port")
+    REDIS_DB: int = Field(..., description="Redis/Valkey database index")
+    REDIS_PASSWORD: str | None = Field(None, description="Redis/Valkey password")
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_prefix="REDIS_",
         extra="ignore",
     )
 
     @property
     def redis_url(self) -> str:
         """Generate Redis URL from settings."""
-        if self.REDIS_PASSWORD:
-            return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
-        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+        # Handle cases where password might be empty string or empty quotes from env
+        p = self.REDIS_PASSWORD
+        if p is None:
+            return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+        # Strip common quote wrappers if present
+        p = p.strip().strip("'").strip('"')
+
+        if not p:
+            return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+        return f"redis://:{p}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
 
 # Create singleton instance

@@ -6,25 +6,63 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from src.api import schemas  # We might need new schemas for Chat
+from src.configurations.settings import settings
 from src.connectors.anthropic_connector import AnthropicConnector
 from src.connectors.gemini_connector import GeminiConnector
+from src.connectors.google_adk_connector import GoogleADKConnector
 from src.services.ai_service import AIService
 from src.services.chat_service import ChatService
 from src.stores.postgres.conversation_store import ConversationStore
-from src.configurations.settings import settings
 
 router = APIRouter()
 
 
 # Dependency Injection
 def get_chat_service() -> ChatService:
-    conv_store = ConversationStore()
+    """
+    Dependency injection for ChatService with multi-agent support.
 
-    # AI Service construction
+    This constructs the entire agent architecture:
+    1. Connectors (Anthropic, Gemini, ADK)
+    2. Agent registry
+    3. Specialized agents (SEC, Financial, General)
+    4. Orchestrator agent
+    5. AI Service with agent support
+    6. Chat Service
+    """
+    # Connectors
     anthropic = AnthropicConnector()
     gemini = GeminiConnector()
-    ai_service = AIService(anthropic, gemini)
+    adk_connector = GoogleADKConnector()
 
+    # Import agent classes
+    from src.modules.agents.agent_registry import AgentRegistry
+    from src.modules.agents.financial_analysis_agent import FinancialAnalysisAgent
+    from src.modules.agents.general_chat_agent import GeneralChatAgent
+    from src.modules.agents.orchestrator_agent import OrchestratorAgent
+    from src.modules.agents.sec_filings_agent import SECFilingsAgent
+
+    # Create agent registry
+    registry = AgentRegistry()
+
+    # Create and register specialized agents
+    sec_agent = SECFilingsAgent(adk_connector)
+    financial_agent = FinancialAnalysisAgent(adk_connector)
+    general_agent = GeneralChatAgent(adk_connector)
+
+    registry.register(sec_agent)
+    registry.register(financial_agent)
+    registry.register(general_agent)
+
+    # Create orchestrator agent with sub-agents from registry
+    orchestrator = OrchestratorAgent(adk_connector, registry)
+    registry.register(orchestrator)
+
+    # Create AI service with agent support
+    ai_service = AIService(anthropic, gemini, adk_connector, orchestrator)
+
+    # Create conversation store and chat service
+    conv_store = ConversationStore()
     return ChatService(conv_store, ai_service)
 
 
@@ -36,7 +74,7 @@ class CreateConversationRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     conversation_id: str
     content: str
-    provider: str = "anthropic"
+    provider: str = "adk"  # Use multi-agent system by default
     model: str | None = None
 
 

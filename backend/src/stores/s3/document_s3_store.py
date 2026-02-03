@@ -1,7 +1,7 @@
 import io
 from typing import BinaryIO
 
-from src.core.storage import ensure_bucket_exists, minio_client, settings
+from src.core.storage import ensure_bucket_exists, get_minio_client, settings
 
 
 class DocumentS3Store:
@@ -21,7 +21,7 @@ class DocumentS3Store:
             content_type: MIME type of the file
         """
         try:
-            minio_client.put_object(self.bucket_name, file_path, data, length=length, content_type=content_type)
+            get_minio_client().put_object(self.bucket_name, file_path, data, length=length, content_type=content_type)
         except Exception as e:
             raise Exception(f"Failed to upload to S3 storage: {e!s}") from e
 
@@ -36,7 +36,7 @@ class DocumentS3Store:
             bytes: The file content
         """
         try:
-            response = minio_client.get_object(self.bucket_name, file_path)
+            response = get_minio_client().get_object(self.bucket_name, file_path)
             content = response.read()
             response.close()
             response.release_conn()
@@ -49,7 +49,7 @@ class DocumentS3Store:
         List files with a given prefix.
         Wrapper around list_objects.
         """
-        return list(minio_client.list_objects(self.bucket_name, prefix=prefix, recursive=True))
+        return list(get_minio_client().list_objects(self.bucket_name, prefix=prefix, recursive=True))
 
     def get_presigned_url(self, file_path: str, expires_hours: int = 1) -> str:
         """
@@ -58,7 +58,7 @@ class DocumentS3Store:
         from datetime import timedelta
 
         try:
-            return minio_client.presigned_get_object(
+            return get_minio_client().presigned_get_object(
                 self.bucket_name, file_path, expires=timedelta(hours=expires_hours)
             )
         except Exception as e:
@@ -69,7 +69,7 @@ class DocumentS3Store:
         Deletes a file from S3 storage.
         """
         try:
-            minio_client.remove_object(self.bucket_name, file_path)
+            get_minio_client().remove_object(self.bucket_name, file_path)
         except Exception as e:
             raise Exception(f"Failed to delete file from S3 storage: {e!s}") from e
 

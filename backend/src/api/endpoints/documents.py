@@ -6,6 +6,7 @@ from src.services.document_service import DocumentService
 from src.stores.postgres.document_store import DocumentStore
 from src.stores.redis.queue_store import QueueStore
 from src.stores.s3.document_s3_store import DocumentS3Store
+from src.core.logging import logger
 
 # from sqlalchemy.ext.asyncio import AsyncSession
 # from src.core.database import get_db
@@ -28,21 +29,31 @@ async def upload_document(
     try:
         # Service handles DB creation and MinIO upload
         doc = await service.upload_document(file)
+        logger.debug(f"Upload completed for doc {doc.id}")
 
         # Get signed URL
         download_url = await service.get_presigned_url(doc.id)
+        logger.debug(f"Got download URL for doc {doc.id}")
+
+        # Get thumbnail URL
+        thumbnail_url = await service.get_thumbnail_url(doc.id)
+        logger.debug(f"Got thumbnail URL for doc {doc.id}: {thumbnail_url}")
 
         # Convert DB model to Pydantic schema
-        return schemas.DocumentMetadata(
+        logger.debug(f"Creating response schema for doc {doc.id}")
+        response = schemas.DocumentMetadata(
             id=doc.id,
             filename=doc.filename,
             upload_date=doc.created_at,
             status=doc.status,
             file_type=doc.file_type,
             download_url=download_url,
-            thumbnail_url=await service.get_thumbnail_url(doc.id),
+            thumbnail_url=thumbnail_url,
         )
+        logger.info(f"Upload endpoint returning response for doc {doc.id}")
+        return response
     except Exception as e:
+        logger.error(f"Upload endpoint error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -110,6 +121,7 @@ async def download_document(
     Redirect to the S3 presigned URL for direct download.
     """
     from fastapi.responses import RedirectResponse
+
     from src.core.logging import logger
 
     try:

@@ -45,7 +45,7 @@ class PromptManager:
             raise FileNotFoundError(f"Prompt '{name}' not found")
 
         try:
-            with open(prompt_path, "r", encoding="utf-8") as f:
+            with open(prompt_path, encoding="utf-8") as f:
                 prompt_text = f.read().strip()
 
             # Cache it
@@ -58,7 +58,7 @@ class PromptManager:
             raise
 
     @classmethod
-    def get_prompt_safe(cls, name: str, default: Optional[str] = None) -> str:
+    def get_prompt_safe(cls, name: str, default: str | None = None) -> str:
         """
         Get a system prompt by name, with fallback.
 

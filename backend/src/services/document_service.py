@@ -4,11 +4,11 @@ import uuid
 
 from fastapi import HTTPException, UploadFile
 
+from src.core.logging import logger
 from src.models.all_models import Document, ProcessingStatus
 from src.stores.postgres.document_store import DocumentStore
 from src.stores.redis.queue_store import QueueStore
 from src.stores.s3.document_s3_store import DocumentS3Store
-from src.core.logging import logger
 
 
 class DocumentService:
@@ -87,16 +87,23 @@ class DocumentService:
                 logger.warning(f"Failed to convert PPTX to PDF for {doc_id}: {e}")
                 # Continue even if conversion fails - preview won't work but download will
 
-        # 4. Enqueue document for parsing (if docling is available)
+        # 4. Enqueue document for processing (chunking, embedding, indexing)
         try:
-            job_id = self.queue_store.enqueue_parsing(doc_id)  # Assuming this is the correct enqueue method
+            # Determine file type from extension
+            file_extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+            job_id = self.queue_store.enqueue_document_processing(
+                document_id=doc_id,
+                file_path=file_path,  # S3 path for worker to download
+                file_type=file_extension,
+            )
             created_doc.parsing_job_id = job_id
-            created_doc.status = ProcessingStatus.QUEUED
+            # Keep status as PENDING - worker will update to PROCESSING then COMPLETED
             await self.store.update_document(created_doc)
-            logger.info(f"Enqueued parsing job {job_id} for document {doc_id}")
+            logger.info(f"Enqueued processing job {job_id} for document {doc_id}")
         except Exception as e:
             # If queue fails, document is still uploaded but not queued
-            logger.warning(f"Failed to enqueue parsing job for {doc_id}: {e}")
+            logger.warning(f"Failed to enqueue processing job for {doc_id}: {e}")
 
         return created_doc
 
@@ -262,21 +269,21 @@ class DocumentService:
 
     async def get_thumbnail_url(self, doc_id: str) -> str | None:
         """
-        Get thumbnail URL for a document.
+        Get thumbnail URL for a document (PNG/JPG of first page).
 
         Args:
             doc_id: Document ID
 
         Returns:
-            Presigned URL for thumbnail, or None if not available
+            Presigned URL for thumbnail image, or None if not generated
 
-        Note:
-            Currently returns None as thumbnail generation is not yet implemented.
-            Future enhancement: Generate thumbnails for PDFs, images, etc.
+        TODO: Implement thumbnail generation:
+            - Extract first page from PDF using pdf2image
+            - Convert to PNG/JPG (200x300px)
+            - Store in S3: {doc_id}/thumbnail.png
+            - Return presigned URL
         """
-        # TODO: Implement thumbnail generation for supported file types
-        # For now, return None to indicate no thumbnail is available
-        return None
+        return None  # Thumbnail generation not yet implemented
 
     async def _convert_pptx_to_pdf(self, doc_id: str, filename: str, pptx_path: str) -> str:
         """
@@ -293,8 +300,8 @@ class DocumentService:
         Raises:
             Exception: If conversion fails
         """
-        import subprocess
         import os
+        import subprocess
 
         try:
             # Create output directory

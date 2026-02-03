@@ -1,5 +1,5 @@
 .PHONY: help api worker front local-stack local-dev stack-down stack-clean
-.PHONY: test test-back test-front lint lint-back lint-front fix fix-back
+.PHONY: test test-back test-front lint lint-back lint-front fix fix-back e2e-tests
 .PHONY: format format-back precommit install-hooks
 
 # Default target
@@ -30,6 +30,9 @@ help:
 	@echo "Pre-commit:"
 	@echo "  make precommit    - Run all quality checks"
 	@echo "  make install-hooks - Install git pre-commit hooks"
+	@echo ""
+	@echo "CI/CD & Integration:"
+	@echo "  make e2e-tests    - Build images and run full system integration tests"
 
 # === SERVICES ===
 
@@ -101,3 +104,20 @@ precommit: lint format-check test
 install-hooks:
 	cd backend && uv run pre-commit install
 	@echo "✓ Pre-commit hooks installed!"
+
+# === E2E TESTING ===
+
+e2e-tests:
+	@echo "🐳 Building images for E2E testing..."
+	docker-compose -f docker-compose.e2e.yml build
+	@echo "🚀 Starting E2E environment..."
+	docker-compose -f docker-compose.e2e.yml up -d
+	@echo "⏳ Waiting for services to be healthy..."
+	# Give it some time to settle
+	sleep 15
+	@echo "🧪 Running integration tests..."
+	# Install test dependencies locally if needed, or run from a container
+	cd backend && uv run pytest ../tests/e2e/test_connection.py
+	@echo "🧹 Cleaning up..."
+	docker-compose -f docker-compose.e2e.yml down -v
+	@echo "✅ E2E tests completed successfully!"

@@ -1,0 +1,41 @@
+global:
+  image:
+    registry: ""
+    tag: latest
+    pullPolicy: Never # Local images in Minikube
+
+features:
+  createConfigMap: false # Set to true if you want Helm to manage the ConfigMap
+  createSecret: false    # Set to true if you want Helm to manage the Secret
+
+env: {}     # Key-value pairs for ConfigMap
+secrets: {} # Key-value pairs for Secret
+
+api:
+  replicaCount: 1
+  image:
+    repository: financial-poc-api
+  service:
+    type: NodePort
+    port: 8000
+    nodePort: 30080
+
+worker:
+  replicaCount: 1
+  image:
+    repository: financial-poc-worker 
+  # Worker uses same image as API currently
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: financial-poc-frontend
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30030
+
+
+# --- Ingress ---
+ingress:
+  enabled: true

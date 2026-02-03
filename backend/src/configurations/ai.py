@@ -1,6 +1,4 @@
-import os
 from pathlib import Path
-from typing import Optional
 
 import yaml
 from pydantic import BaseModel, Field
@@ -27,7 +25,7 @@ class ProviderConfig(BaseModel):
 class ModelConfigurations:
     """Loads and manages model configurations from YAML file."""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         if config_path is None:
             # Default to configurations/model_configurations.yaml
             config_path = Path(__file__).parent / "model_configurations.yaml"
@@ -43,7 +41,7 @@ class ModelConfigurations:
         if not self.config_path.exists():
             raise FileNotFoundError(f"Model configuration file not found: {self.config_path}")
 
-        with open(self.config_path, "r") as f:
+        with open(self.config_path) as f:
             data = yaml.safe_load(f)
 
         # Parse providers and models
@@ -74,7 +72,7 @@ class ModelConfigurations:
                 )
         return models
 
-    def get_model_config(self, provider: str, model_id: str) -> Optional[ModelConfig]:
+    def get_model_config(self, provider: str, model_id: str) -> ModelConfig | None:
         """Get configuration for a specific model."""
         provider_config = self.providers.get(provider)
         if not provider_config:
@@ -96,12 +94,16 @@ class ModelConfigurations:
 class AISettings(BaseSettings):
     """AI provider settings with API keys."""
 
-    ANTHROPIC_API_KEY: str = Field(default="", description="Anthropic API key")
-    GOOGLE_API_KEY: str = Field(default="", alias="GEMINI_API_KEY", description="Google Gemini API key")
+    ANTHROPIC_API_KEY: str = Field(..., description="Anthropic API key")
+    GOOGLE_API_KEY: str = Field(..., description="Google Gemini API key")
 
-    # Legacy compatibility
-    ANTHROPIC_MODEL: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
-    ANTHROPIC_MAX_TOKENS: int = int(os.getenv("ANTHROPIC_MAX_TOKENS", "4096"))
+    # Model settings
+    ANTHROPIC_MODEL: str = Field(..., description="Anthropic model ID")
+    ANTHROPIC_MAX_TOKENS: int = Field(..., description="Maximum tokens for Anthropic")
+
+    # Google ADK configuration
+    ADK_DEFAULT_MODEL: str = Field(..., description="Default model for Google ADK")
+    ADK_DEFAULT_TEMPERATURE: float = Field(..., description="Default temperature for Google ADK")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -112,7 +114,7 @@ class AISettings(BaseSettings):
         """Get all available models from configuration file."""
         return self._model_configs.get_all_models()
 
-    def get_model_config(self, provider: str, model_id: str) -> Optional[ModelConfig]:
+    def get_model_config(self, provider: str, model_id: str) -> ModelConfig | None:
         """Get configuration for a specific model."""
         return self._model_configs.get_model_config(provider, model_id)
 

@@ -1,0 +1,13 @@
+{{- if .Values.features.createConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: financial-poc-config
+data:
+  # Add your configuration here or pass via --set
+  # Example:
+  # POSTGRES_HOST: {{ .Values.config.postgres.host | default "postgres" }}
+  {{- range $key, $val := .Values.env }}
+  {{ $key }}: {{ $val | quote }}
+  {{- end }}
+{{- end }}

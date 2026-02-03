@@ -1,9 +1,17 @@
 import os
-from pydantic_settings import BaseSettings
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class OpenSearchSettings(BaseSettings):
-    OPENSEARCH_HOST: str = os.getenv("OPENSEARCH_HOST", "localhost")
-    OPENSEARCH_PORT: int = int(os.getenv("OPENSEARCH_PORT", 9200))
-    OPENSEARCH_USER: str = os.getenv("OPENSEARCH_USER", "admin")
-    OPENSEARCH_PASSWORD: str = os.getenv("OPENSEARCH_PASSWORD", "admin")
+    OPENSEARCH_HOST: str = "localhost"
+    OPENSEARCH_PORT: int = 9200
+    OPENSEARCH_USER: str = "admin"
+    OPENSEARCH_PASSWORD: str = "admin"
+    OPENSEARCH_USE_SSL: bool = True
+    OPENSEARCH_VERIFY_CERTS: bool = False
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )

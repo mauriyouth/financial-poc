@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 class ProcessingStatus(str, Enum):
     PENDING = "pending"
+    QUEUED = "queued"  # Document is queued for processing
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -24,12 +25,25 @@ class DocumentMetadata(BaseModel):
     thumbnail_url: str | None = None
 
 
+class CitationSchema(BaseModel):
+    """Citation with source information and bbox for highlighting."""
+
+    id: str
+    chunk_id: str
+    source_name: str
+    source_type: str
+    content: str
+    bbox: dict | None = None  # BBox information for frontend highlighting
+    metadata: dict = {}
+
+
 class Message(BaseModel):
     id: str
     conversation_id: str
     role: str
     content: str
     sources: list[dict] = []
+    citations: list[CitationSchema] | None = None  # NEW: Citations with bbox (optional)
     thinking_steps: list[Any] | None = None
     created_at: datetime
 

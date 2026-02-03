@@ -1,5 +1,5 @@
 import React from 'react';
-import { Message } from '@/lib/api/chat';
+import { Message, Citation } from '@/lib/api/chat';
 import { DocumentMetadata } from '@/lib/api/documents';
 import { cn } from '@/lib/utils';
 import { UserMessage } from './UserMessage';
@@ -8,9 +8,10 @@ import { AssistantMessage } from './AssistantMessage';
 interface MessageListProps {
     messages: Message[];
     onSourceClick?: (source: DocumentMetadata) => void;
+    onCitationClick?: (citation: Citation) => void;  // NEW: Citation click handler
 }
 
-export function MessageList({ messages, onSourceClick }: MessageListProps) {
+export function MessageList({ messages, onSourceClick, onCitationClick }: MessageListProps) {
     return (
         <>
             {messages.map((msg) => (
@@ -35,7 +36,9 @@ export function MessageList({ messages, onSourceClick }: MessageListProps) {
                                 content={msg.content}
                                 thinkingSteps={msg.thinking_steps}
                                 sources={msg.sources}
+                                citations={msg.citations}  // NEW: Pass citations
                                 onSourceClick={onSourceClick}
+                                onCitationClick={onCitationClick}  // NEW: Pass handler
                             />
                         )}
                     </div>

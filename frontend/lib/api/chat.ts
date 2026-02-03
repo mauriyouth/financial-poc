@@ -1,5 +1,35 @@
-import { api } from './client';
+import { api, API_BASE_URL } from './client';
 import { DocumentMetadata } from './documents';
+
+export interface BBox {
+    // PDF coordinates
+    page?: number;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+
+    // Web/HTML selectors
+    selector?: string;
+    xpath?: string;
+    offset?: number;
+
+    // Text positions
+    line_start?: number;
+    line_end?: number;
+    char_start?: number;
+    char_end?: number;
+}
+
+export interface Citation {
+    id: string;
+    chunk_id: string;
+    source_name: string;
+    source_type: string;
+    content: string;
+    bbox?: BBox;
+    metadata?: Record<string, any>;
+}
 
 export interface Message {
     id: string;
@@ -7,6 +37,7 @@ export interface Message {
     role: 'user' | 'assistant';
     content: string;
     sources?: DocumentMetadata[];
+    citations?: Citation[];  // NEW: Citations with bbox
     attachments?: DocumentMetadata[];  // For files attached to user messages
     created_at: string;
     thinking_steps?: string[];
@@ -57,7 +88,7 @@ export const streamMessage = async (
     onEvent: (event: StreamEvent) => void,
     model?: string
 ): Promise<void> => {
-    const response = await fetch('http://localhost:8000/chat/stream', {
+    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

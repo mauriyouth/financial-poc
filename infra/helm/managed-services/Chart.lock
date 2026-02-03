@@ -1,0 +1,15 @@
+dependencies:
+- name: valkey
+  repository: https://valkey-io.github.io/valkey-helm/
+  version: 0.9.3
+- name: minio
+  repository: https://charts.min.io/
+  version: 5.4.0
+- name: opensearch
+  repository: https://opensearch-project.github.io/helm-charts/
+  version: 2.23.0
+- name: opensearch-dashboards
+  repository: https://opensearch-project.github.io/helm-charts/
+  version: 2.22.0
+digest: sha256:fb2aff924923d9d577836fece8e6a96a3c264dbd846599a3e1e0e9dfab010d6b
+generated: "2026-02-03T19:55:29.361731+01:00"
