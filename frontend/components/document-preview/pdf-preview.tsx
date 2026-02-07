@@ -5,10 +5,11 @@ interface PDFPreviewProps {
 
 }
 
-export function PDFPreview({ documentUrl }: PDFPreviewProps) {
+export function PDFPreview({ documentUrl, page }: PDFPreviewProps & { page?: number }) {
+    const src = page ? `${documentUrl}#page=${page}&view=FitH` : `${documentUrl}#view=FitH`;
     return (
         <iframe
-            src={`${documentUrl}#view=FitH`}
+            src={src}
             className="w-full h-full"
             title="PDF Document Preview"
         />

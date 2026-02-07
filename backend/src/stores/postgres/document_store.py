@@ -28,3 +28,12 @@ class DocumentStore:
             statement = select(Document)
             result = await session.execute(statement)
             return result.scalars().all()
+
+    async def delete_document(self, document_id: str) -> bool:
+        async with AsyncSessionLocal() as session:
+            doc = await session.get(Document, document_id)
+            if doc:
+                await session.delete(doc)
+                await session.commit()
+                return True
+            return False

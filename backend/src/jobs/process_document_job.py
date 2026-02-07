@@ -86,21 +86,22 @@ async def process_document_job_async(document_id: str, file_path: str, file_type
             raise ValueError(f"Could not download document from S3: {e}") from e
 
         # Process document
-        chunk_count = await processing_service.process_document(
+        chunk_count, summary = await processing_service.process_document(
             file_path=local_file_path, file_type=file_type, source_id=document_id, source_name=doc.filename
         )
 
         # Update document status
         doc.status = ProcessingStatus.COMPLETED
-        doc.metadata = doc.metadata or {}
-        doc.metadata["chunk_count"] = chunk_count
+        doc.metadata_ = doc.metadata_ or {}
+        doc.metadata_["chunk_count"] = chunk_count
+        doc.metadata_["summary"] = summary
         await document_store.update_document(doc)
 
         # Emit completed status
         await notification_service.publish_document_status(
             document_id=document_id,
             status="completed",
-            metadata={"chunk_count": chunk_count},
+            metadata={"chunk_count": chunk_count, "summary": summary[:200] + "..."},
         )
 
         logger.info(f"Successfully processed document {document_id}: {chunk_count} chunks")

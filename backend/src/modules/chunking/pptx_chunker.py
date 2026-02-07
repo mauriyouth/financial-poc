@@ -1,7 +1,7 @@
 """PowerPoint chunker with bounding box extraction."""
 
-from pptx import Presentation
 from loguru import logger
+from pptx import Presentation
 
 from src.models.entities.chunk_entities import BBox, ChunkCreate, SourceType
 from src.modules.chunking.base_chunker import BaseChunker

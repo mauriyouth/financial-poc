@@ -2,18 +2,42 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { InteractiveTable } from './interactive-table';
+import { Citation } from '@/lib/api/chat';
 
 interface MarkdownContentProps {
     content: string;
     className?: string;
+    citations?: Citation[];
+    onCitationClick?: (id: string) => void;
 }
+
 
 /**
  * Styled markdown renderer with custom components for better formatting.
  * Provides professional styling for headers, tables, lists, code blocks, etc.
  * Uses remark-gfm for GitHub Flavored Markdown support (tables, strikethrough, etc.)
  */
-export function MarkdownContent({ content, className = '' }: MarkdownContentProps) {
+export function MarkdownContent({ content, className = '', citations, onCitationClick }: MarkdownContentProps) {
+    // Process content to replace citations {{cite:id}} with links [citation:index](#citation-id)
+    // We map citation IDs to sequential numbers (1, 2, 3...)
+    const citationMap = new Map<string, number>();
+
+    // If citations are provided, initialize the map from them
+    if (citations && citations.length > 0) {
+        citations.forEach((c, idx) => {
+            citationMap.set(c.chunk_id, idx + 1);
+        });
+    }
+
+    let nextCitationIndex = citationMap.size + 1;
+
+    const processedContent = content.replace(/{{cite:([^}]+)}}/g, (match, id) => {
+        if (!citationMap.has(id)) {
+            citationMap.set(id, nextCitationIndex++);
+        }
+        const num = citationMap.get(id);
+        return `[${num}](#citation-${id})`;
+    });
     return (
         <div className={`prose dark:prose-invert prose-sm max-w-none 
             prose-headings:font-semibold prose-headings:text-foreground
@@ -97,13 +121,33 @@ export function MarkdownContent({ content, className = '' }: MarkdownContentProp
                         <pre className="bg-muted border border-border p-4 rounded-lg my-4 overflow-x-auto" {...props} />
                     ),
 
-                    // Blockquotes
                     blockquote: ({ node, ...props }) => (
                         <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground" {...props} />
                     ),
+
+                    // Custom renderer for links to handle citations
+                    a: ({ node, href, children, ...props }) => {
+                        if (href?.startsWith('#citation-')) {
+                            const id = href.replace('#citation-', '');
+                            const num = children;
+                            return (
+                                <button
+                                    className="inline-flex items-center justify-center w-5 h-5 ml-1 -mt-2 text-[10px] font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-full cursor-pointer transition-colors align-super"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        if (onCitationClick) onCitationClick(id);
+                                    }}
+                                    title="View Source"
+                                >
+                                    {num}
+                                </button>
+                            );
+                        }
+                        return <a className="text-primary underline hover:text-primary/80" href={href} {...props}>{children}</a>;
+                    },
                 }}
             >
-                {content}
+                {processedContent}
             </ReactMarkdown>
         </div>
     );

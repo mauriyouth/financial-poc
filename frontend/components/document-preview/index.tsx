@@ -20,6 +20,7 @@ export interface DocumentPreviewProps {
     onCloseDocument: (id: string) => void;
     isFullscreen?: boolean;
     onToggleFullscreen?: () => void;
+    activePage?: number;
 }
 
 export function DocumentPreview({
@@ -29,7 +30,8 @@ export function DocumentPreview({
     onClose,
     onCloseDocument,
     isFullscreen = false,
-    onToggleFullscreen
+    onToggleFullscreen,
+    activePage
 }: DocumentPreviewProps) {
     const currentId = activeId || documents[0]?.id;
 
@@ -82,8 +84,9 @@ export function DocumentPreview({
     const renderPreview = () => {
         // PowerPoint files are auto-converted to PDF on upload, so use PDF preview
         if (isPDF || isPowerPoint) {
-            return <PDFPreview documentUrl={documentUrl} />;
+            return <PDFPreview documentUrl={documentUrl} page={activePage} />;
         }
+
         if (isExcel) {
             return <ExcelPreview documentId={documentId} documentUrl={documentUrl} documentName={documentName} />;
         }

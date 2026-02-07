@@ -5,17 +5,28 @@ import uuid
 from fastapi import HTTPException, UploadFile
 
 from src.core.logging import logger
+from src.connectors.opensearch_connector import OpenSearchConnector
 from src.models.all_models import Document, ProcessingStatus
+from src.models.entities.chunk_entities import Chunk
+from src.stores.opensearch.chunk_store import ChunkStore
 from src.stores.postgres.document_store import DocumentStore
 from src.stores.redis.queue_store import QueueStore
 from src.stores.s3.document_s3_store import DocumentS3Store
 
 
 class DocumentService:
-    def __init__(self, document_store: DocumentStore, s3_store: DocumentS3Store, queue_store: QueueStore) -> None:
+    def __init__(
+        self,
+        document_store: DocumentStore,
+        s3_store: DocumentS3Store,
+        queue_store: QueueStore,
+        opensearch_connector: OpenSearchConnector,
+    ) -> None:
         self.store = document_store
         self.s3_store = s3_store
         self.queue_store = queue_store
+        self.chunk_store = ChunkStore(opensearch_connector)
+
         logger.info("DocumentService initialized")
 
     async def upload_document(self, file: UploadFile) -> Document:
@@ -148,6 +159,10 @@ class DocumentService:
 
     async def get_document(self, doc_id: str) -> Document | None:
         return await self.store.get_document(doc_id)
+
+    async def get_chunk(self, chunk_id: str) -> Chunk | None:
+        """Get chunk by ID."""
+        return await self.chunk_store.get_chunk(chunk_id)
 
     async def get_document_content(self, doc_id: str, format: str = "markdown") -> str:
         """
@@ -284,6 +299,49 @@ class DocumentService:
             - Return presigned URL
         """
         return None  # Thumbnail generation not yet implemented
+
+    async def delete_document(self, doc_id: str) -> None:
+        """
+        Delete a document and its associated files.
+        """
+        doc = await self.store.get_document(doc_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        # Delete from S3 (best effort cleanup)
+        try:
+            # We try to delete known artifacts
+            files_to_delete = [
+                doc.file_path,
+                f"{doc_id}/content.md",
+                f"{doc_id}/content.html",
+                f"{doc_id}/thumbnail.png",
+            ]
+            if doc.pdf_preview_path:
+                files_to_delete.append(doc.pdf_preview_path)
+
+            # TODO: Ideally list all objects in {doc_id}/ prefix and remove them
+            # For now this covers most cases
+
+            for file_path in files_to_delete:
+                try:
+                    self.s3_store.delete_file(file_path)
+                except Exception:
+                    # Ignore if file doesn't exist
+                    pass
+        except Exception as e:
+            logger.warning(f"Error cleaning up S3 files for {doc_id}: {e}")
+
+        # Delete from OpenSearch
+        try:
+            await self.chunk_store.delete_chunks_by_source(doc_id)
+            logger.info(f"Deleted chunks for document {doc_id} from OpenSearch")
+        except Exception as e:
+            logger.warning(f"Error cleaning up OpenSearch chunks for {doc_id}: {e}")
+
+        # Delete from DB
+        await self.store.delete_document(doc_id)
+        logger.info(f"Deleted document {doc_id}")
 
     async def _convert_pptx_to_pdf(self, doc_id: str, filename: str, pptx_path: str) -> str:
         """

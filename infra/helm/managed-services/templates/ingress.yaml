@@ -27,7 +27,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: managed-services-minio
+                name: managed-services-minio-console
                 port:
                   number: 9001
     - host: opensearch.local
@@ -40,4 +40,14 @@ spec:
                 name: opensearch-cluster-master
                 port:
                   number: 9200
+    - host: opensearch-dashboard.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: managed-services-opensearch-dashboards
+                port:
+                  number: 5601
 {{- end -}}

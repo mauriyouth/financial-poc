@@ -10,6 +10,11 @@ export interface DocumentMetadata {
     error_message?: string;
     download_url?: string;
     thumbnail_url?: string;
+    metadata?: {
+        summary?: string;
+        chunk_count?: number;
+        [key: string]: any;
+    };
 }
 
 export type DocumentContent = string | { content: string; metadata: Record<string, unknown> };
@@ -82,4 +87,29 @@ export const updateDocument = async (id: string, file: File): Promise<DocumentMe
         },
     });
     return response.data;
+};
+
+export const deleteDocument = async (id: string): Promise<void> => {
+    await api.delete(`/documents/${id}`);
+};
+
+export interface Chunk {
+    id: string;
+    source_id: string;
+    source_name: string;
+    content: string;
+    metadata: {
+        page_number?: number;
+        [key: string]: any;
+    };
+}
+
+export const getChunk = async (chunkId: string): Promise<Chunk | null> => {
+    try {
+        const response = await api.get<Chunk>(`/documents/chunks/${chunkId}`);
+        return response.data;
+    } catch (error) {
+        console.warn(`Failed to fetch chunk ${chunkId}`, error);
+        return null;
+    }
 };

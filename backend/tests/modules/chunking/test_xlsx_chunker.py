@@ -1,11 +1,10 @@
 """Test XLSX chunker with mock spreadsheet."""
 
 import pytest
-import openpyxl
 from openpyxl import Workbook
 
-from src.modules.chunking.xlsx_chunker import XLSXChunker
 from src.models.entities.chunk_entities import SourceType
+from src.modules.chunking.xlsx_chunker import XLSXChunker
 
 
 @pytest.fixture

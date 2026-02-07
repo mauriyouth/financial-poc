@@ -7,7 +7,7 @@ from sqlmodel import SQLModel, create_engine
 from src.configurations.settings import settings
 
 # Async Engine (Legacy/FastAPI usage if needed)
-async_engine = create_async_engine(settings.DATABASE_URL, echo=True)
+async_engine = create_async_engine(settings.DATABASE_URL)
 
 AsyncSessionLocal = sessionmaker(
     bind=async_engine,

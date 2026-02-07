@@ -20,7 +20,8 @@ export function useDocumentStatus(documentId: string | null) {
         if (!documentId) return;
 
         // Connect to WebSocket
-        const ws = new WebSocket(`ws://localhost:8000/ws`);
+        const { getWsBaseUrl } = require('../config');
+        const ws = new WebSocket(`${getWsBaseUrl()}/ws`);
         wsRef.current = ws;
 
         ws.onopen = () => {

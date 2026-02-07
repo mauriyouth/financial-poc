@@ -12,6 +12,7 @@ export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const [dataSource, setDataSource] = useState<DataSource>('knowledge');
   const [model, setModel] = useState<string>("anthropic");
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   const handleStartChat = async (message: string, attachments?: DocumentMetadata[]) => {
     if (!message.trim() && !attachments?.length) return;
@@ -24,7 +25,8 @@ export default function HomePage() {
       localStorage.setItem('pendingMessage', JSON.stringify({
         content: message,
         files: attachments || [],
-        model: model // Save selected model
+        model: model, // Save selected model
+        agent: selectedAgent // Save selected agent
       }));
 
       // Navigate to chat
@@ -63,6 +65,8 @@ export default function HomePage() {
             onDataSourceChange={setDataSource}
             model={model}
             onModelChange={setModel}
+            selectedAgent={selectedAgent}
+            onAgentChange={setSelectedAgent}
           />
         </div>
 

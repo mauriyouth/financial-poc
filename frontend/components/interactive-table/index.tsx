@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { ArrowUp, ArrowDown, ArrowUpDown, Download, Columns3 } from 'lucide-react';
 import { TableToolbar } from './table-toolbar';
 import { ColumnVisibilityMenu } from './column-visibility-menu';
-import { parseTableContent, sortTableData, exportToExcel, filterVisibleColumns } from './utils';
+import { parseTableContent, sortTableData, exportToExcel, filterVisibleColumns, TableCell } from './utils';
 
 interface InteractiveTableProps {
     children: React.ReactNode;
@@ -28,7 +28,25 @@ export function InteractiveTable({ children }: InteractiveTableProps) {
         if (sortColumn === null || sortDirection === null) {
             return rows;
         }
-        return sortTableData(rows, sortColumn, sortDirection);
+        const dataForSorting = rows.map(row => row.map(cell => cell.text));
+        const sortedIndices = sortTableData(dataForSorting, sortColumn, sortDirection)
+            .map(sortedRow => rows.findIndex(originalRow => originalRow.every((cell, i) => cell.text === sortedRow[i])));
+
+        // Simpler way: sort the actual objects based on their text property
+        return [...rows].sort((a, b) => {
+            const aVal = a[sortColumn]?.text || '';
+            const bVal = b[sortColumn]?.text || '';
+
+            const aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
+            const bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
+
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+            }
+
+            const comp = aVal.toLowerCase().localeCompare(bVal.toLowerCase());
+            return sortDirection === 'asc' ? comp : -comp;
+        });
     }, [rows, sortColumn, sortDirection]);
 
     // Handle column header click for sorting
@@ -79,9 +97,9 @@ export function InteractiveTable({ children }: InteractiveTableProps) {
 
     // Handle export to Excel
     const handleExportExcel = () => {
-        const visibleHeaders = filterVisibleColumns([headers], hiddenColumns)[0];
-        const visibleRows = filterVisibleColumns(sortedRows, hiddenColumns);
-        exportToExcel(visibleHeaders, visibleRows, 'table-export');
+        const visibleHeaders = filterVisibleColumns([headers.map(h => h.text)], hiddenColumns)[0];
+        const visibleRows = filterVisibleColumns(sortedRows.map(row => row.map(c => c.text)), hiddenColumns);
+        exportToExcel(visibleHeaders as string[], visibleRows as string[][], 'table-export');
     };
 
     // Handle clear sort
@@ -203,7 +221,7 @@ export function InteractiveTable({ children }: InteractiveTableProps) {
                                                 onChange={() => handleToggleColumn(index)}
                                                 className="rounded"
                                             />
-                                            <span className="text-sm">{header || `Column ${index + 1}`}</span>
+                                            <span className="text-sm">{header.text || `Column ${index + 1}`}</span>
                                         </label>
                                     );
                                 })}
@@ -243,7 +261,7 @@ export function InteractiveTable({ children }: InteractiveTableProps) {
                                             className="px-4 py-3 text-left text-sm font-semibold text-foreground cursor-pointer hover:bg-muted/70 transition-colors group bg-muted"
                                             onClick={() => handleHeaderClick(originalIndex)}
                                         >
-                                            {header}
+                                            {header.content}
                                             {renderSortIndicator(originalIndex)}
                                         </th>
                                     );
@@ -255,7 +273,7 @@ export function InteractiveTable({ children }: InteractiveTableProps) {
                                 <tr key={rowIndex} className="hover:bg-muted/30 transition-colors">
                                     {row.map((cell, cellIndex) => (
                                         <td key={cellIndex} className="px-4 py-3 text-sm">
-                                            {cell}
+                                            {cell.content}
                                         </td>
                                     ))}
                                 </tr>

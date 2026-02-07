@@ -2,7 +2,6 @@
 
 import asyncio
 
-from src.configurations.settings import settings
 from src.connectors.anthropic_connector import AnthropicConnector
 from src.connectors.gemini_connector import GeminiConnector
 from src.connectors.google_adk_connector import GoogleADKConnector

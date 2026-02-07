@@ -34,6 +34,13 @@ function start_minikube() {
 case "$COMMAND" in
     "local-stack")
         start_minikube
+        if ! pgrep -f "minikube tunnel" > /dev/null; then
+            log "info" "Starting minikube tunnel..."
+            # Using sudo for tunnel as it requires privileges for ports < 1024
+            sudo minikube tunnel > /dev/null 2>&1 &
+        else
+            log "info" "Minikube tunnel already running."
+        fi
         log "info" "Deploying managed services..."
         # Create namespace if not exists
         kubectl create namespace managed-services --dry-run=client -o yaml | kubectl apply -f -

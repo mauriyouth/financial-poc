@@ -1,12 +1,11 @@
 """Test PDF chunker with mock document."""
 
-import os
 import pytest
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-from src.modules.chunking.pdf_chunker import PDFChunker
 from src.models.entities.chunk_entities import SourceType
+from src.modules.chunking.pdf_chunker import PDFChunker
 
 
 @pytest.fixture

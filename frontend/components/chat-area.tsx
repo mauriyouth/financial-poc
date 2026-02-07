@@ -16,9 +16,13 @@ interface ChatAreaProps {
     onSourceClick?: (source: DocumentMetadata) => void;
     model?: string;
     onModelChange?: (model: string) => void;
+    selectedAgent?: string | null;
+    onAgentChange?: (agent: string | null) => void;
+    onCitationClick?: (citationId: string) => void;
 }
 
-export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, model, onModelChange }: ChatAreaProps) {
+export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, model, onModelChange, selectedAgent, onAgentChange, onCitationClick }: ChatAreaProps) {
+
     const [input, setInput] = useState("");
     const [dataSource, setDataSource] = useState<DataSource>('knowledge');
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,7 +95,11 @@ export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, mo
                 <div className="space-y-6 w-full min-w-0">
                     {messages.length === 0 && <EmptyState />}
 
-                    <MessageList messages={messages} onSourceClick={onSourceClick} />
+                    <MessageList
+                        messages={messages}
+                        onSourceClick={onSourceClick}
+                        onCitationClick={onCitationClick}
+                    />
 
                     {isLoading && <LoadingIndicator />}
 
@@ -127,6 +135,8 @@ export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, mo
                         onDataSourceChange={setDataSource}
                         model={model}
                         onModelChange={onModelChange}
+                        selectedAgent={selectedAgent}
+                        onAgentChange={onAgentChange}
                     />
                 </div>
             </div>

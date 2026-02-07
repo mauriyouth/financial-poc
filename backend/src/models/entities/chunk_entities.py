@@ -2,8 +2,9 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
+
 from pydantic import BaseModel, Field
-from typing import Any, Optional
 
 
 class SourceType(str, Enum):
@@ -21,22 +22,22 @@ class BBox(BaseModel):
     """Bounding box for precise content location."""
 
     # For PDFs and documents
-    page: Optional[int] = None
-    x: Optional[float] = None
-    y: Optional[float] = None
-    width: Optional[float] = None
-    height: Optional[float] = None
+    page: int | None = None
+    x: float | None = None
+    y: float | None = None
+    width: float | None = None
+    height: float | None = None
 
     # For web pages
-    selector: Optional[str] = None  # CSS/DOM selector
-    xpath: Optional[str] = None  # XPath for precise location
-    offset: Optional[int] = None  # Character offset in element
+    selector: str | None = None  # CSS/DOM selector
+    xpath: str | None = None  # XPath for precise location
+    offset: int | None = None  # Character offset in element
 
     # For text-based documents
-    line_start: Optional[int] = None
-    line_end: Optional[int] = None
-    char_start: Optional[int] = None
-    char_end: Optional[int] = None
+    line_start: int | None = None
+    line_end: int | None = None
+    char_start: int | None = None
+    char_end: int | None = None
 
     class Config:
         extra = "allow"  # Allow additional fields for flexibility
@@ -54,7 +55,7 @@ class Chunk(BaseModel):
     start_pos: int | None = None
     end_pos: int | None = None
 
-    bbox: Optional[BBox] = None  # Bounding box for precise location
+    bbox: BBox | None = None  # Bounding box for precise location
     metadata: dict[str, Any] = Field(default_factory=dict)
     embedding: list[float] | None = None
 
@@ -73,7 +74,7 @@ class ChunkCreate(BaseModel):
     content: str
     start_pos: int | None = None
     end_pos: int | None = None
-    bbox: Optional[BBox] = None
+    bbox: BBox | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

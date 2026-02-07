@@ -103,7 +103,10 @@ class Message(SQLModel, table=True):
     role: str  # user, assistant
     content: str
     sources: list[dict] = Field(default=[], sa_column=Column(JSON))
+    citations: list[dict] = Field(default=[], sa_column=Column(JSON))
     thinking_steps: list[dict] = Field(default=[], sa_column=Column(JSON))
+    reasoning_events: list[dict] = Field(default=[], sa_column=Column(JSON))
+    agent_transitions: list[dict] = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     conversation: Conversation = Relationship(back_populates="messages")

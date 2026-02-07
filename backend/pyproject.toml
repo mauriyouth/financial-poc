@@ -22,11 +22,12 @@ api = [
     "uvicorn>=0.40.0",
     "python-multipart>=0.0.21",
     "anthropic>=0.75.0",
-    "google-generativeai>=0.8.6",
     "pydantic-ai>=1.41.0",
     "google-adk>=1.14.1",
     "minio>=7.2.20",
     "redis>=5.2.1",
+    "opensearch-py>=3.1.0",
+    "orjson>=3.11.7",
 ]
 
 worker = [
@@ -34,7 +35,6 @@ worker = [
     "redis>=5.2.1",
     "minio>=7.2.20",
     "opensearch-py>=3.1.0",
-    "google-generativeai>=0.8.6",
     "pypdf>=6.6.0",
     "python-pptx>=1.0.2",
     "python-docx>=1.2.0",

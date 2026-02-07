@@ -2,10 +2,9 @@
 
 import pytest
 from docx import Document
-from docx.shared import Pt
 
-from src.modules.chunking.docx_chunker import DOCXChunker
 from src.models.entities.chunk_entities import SourceType
+from src.modules.chunking.docx_chunker import DOCXChunker
 
 
 @pytest.fixture

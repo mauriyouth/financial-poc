@@ -1,8 +1,8 @@
 """OpenSearch connector for chunk storage and retrieval."""
 
-import uuid
-from opensearchpy import OpenSearch
 from loguru import logger
+from opensearchpy import OpenSearch
+
 from src.configurations.opensearch import OpenSearchSettings
 
 
@@ -26,7 +26,7 @@ class OpenSearchConnector:
                 use_ssl=self.settings.OPENSEARCH_USE_SSL,
                 verify_certs=self.settings.OPENSEARCH_VERIFY_CERTS,
             )
-            logger.debug(f"OpenSearch client initialized (lazy)")
+            logger.debug("OpenSearch client initialized (lazy)")
         return self._client
 
     def create_chunks_index(self) -> None:
@@ -44,7 +44,7 @@ class OpenSearchConnector:
                     "metadata": {"type": "object"},
                     "embedding": {
                         "type": "knn_vector",  # For semantic search
-                        "dimension": 768,  # gemini-embedding-001 dimension
+                        "dimension": 3072,  # Updated to match actual model output (was 768)
                         "method": {
                             "name": "hnsw",
                             "space_type": "l2",

@@ -14,8 +14,7 @@ postgresql:
   persistence:
     size: 8Gi
   service:
-    type: NodePort
-    nodePort: 30432
+    type: LoadBalancer
 
 # --- Valkey (Open Source Redis Successor) ---
 # Official Valkey chart defaults
@@ -24,11 +23,16 @@ valkey:
   architecture: standalone
   auth:
     enabled: false
+  livenessProbe:
+    timeoutSeconds: 5
+  readinessProbe:
+    timeoutSeconds: 5
+  startupProbe:
+    timeoutSeconds: 5
   persistence:
     enabled: false
   service:
-    type: NodePort
-    nodePort: 30379
+    type: LoadBalancer
 
 # --- MinIO (Official) ---
 # Official Minio chart: https://github.com/minio/minio/tree/master/helm/minio
@@ -65,6 +69,10 @@ opensearch:
 opensearch-dashboards:
   enabled: true
   opensearchHosts: "http://opensearch-cluster-master:9200"
+  config:
+    opensearch_dashboards.yml:
+      opensearch.ssl.verificationMode: none
+      opensearch_security.enabled: false
 # --- Ingress ---
 ingress:
   enabled: true

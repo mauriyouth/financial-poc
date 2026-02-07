@@ -40,7 +40,7 @@ api:
 	cd backend && uv run uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 
 worker:
-	cd backend && uv run python worker.py
+	cd backend && OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES uv run python worker.py
 
 front:
 	cd frontend && npm run dev

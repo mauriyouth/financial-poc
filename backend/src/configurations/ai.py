@@ -104,6 +104,7 @@ class AISettings(BaseSettings):
     # Google ADK configuration
     ADK_DEFAULT_MODEL: str = Field(..., description="Default model for Google ADK")
     ADK_DEFAULT_TEMPERATURE: float = Field(..., description="Default temperature for Google ADK")
+    MANAGER_THINKING_BUDGET: int = Field(default=1024, description="Token budget for manager thinking")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

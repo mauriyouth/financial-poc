@@ -2,7 +2,7 @@
 Service layer tests for the financial POC backend.
 """
 
-from src.services.ai_service import AIResponse
+from src.modules.agents.types import AIResponse
 
 
 def test_ai_response_model():

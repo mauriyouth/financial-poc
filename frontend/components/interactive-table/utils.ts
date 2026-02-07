@@ -9,12 +9,21 @@ import React from 'react';
  * Parses table content from React children (ReactMarkdown output)
  * Extracts headers and data rows from table structure
  */
+export interface TableCell {
+    content: React.ReactNode;
+    text: string;
+}
+
+/**
+ * Parses table content from React children (ReactMarkdown output)
+ * Extracts headers and data rows from table structure, preserving React elements
+ */
 export function parseTableContent(children: React.ReactNode): {
-    headers: string[];
-    rows: string[][];
+    headers: TableCell[];
+    rows: TableCell[][];
 } {
-    const headers: string[] = [];
-    const rows: string[][] = [];
+    const headers: TableCell[] = [];
+    const rows: TableCell[][] = [];
 
     // Helper to extract text from React nodes recursively
     const extractText = (node: any): string => {
@@ -41,14 +50,13 @@ export function parseTableContent(children: React.ReactNode): {
     const processChildren = (elements: any) => {
         const elementArray = Array.isArray(elements) ? elements : [elements];
 
-        elementArray.forEach((element: any, index: number) => {
+        elementArray.forEach((element: any) => {
             if (!React.isValidElement(element)) return;
 
-            // Check by key since ReactMarkdown wraps in custom components
             const key = String(element.key || '');
             const elementProps = (element.props as any);
 
-            // Handle thead (key starts with 'thead')
+            // Handle thead
             if (key.startsWith('thead')) {
                 const theadChildren = React.Children.toArray(elementProps.children);
                 theadChildren.forEach((tr: any) => {
@@ -58,26 +66,31 @@ export function parseTableContent(children: React.ReactNode): {
                         thElements.forEach((th: any) => {
                             if (React.isValidElement(th)) {
                                 const thProps = (th.props as any);
-                                const text = extractText(thProps.children).trim();
-                                headers.push(text);
+                                headers.push({
+                                    content: thProps.children,
+                                    text: extractText(thProps.children).trim()
+                                });
                             }
                         });
                     }
                 });
             }
 
-            // Handle tbody (key starts with 'tbody')
+            // Handle tbody
             if (key.startsWith('tbody')) {
                 const tbodyChildren = React.Children.toArray(elementProps.children);
                 tbodyChildren.forEach((tr: any) => {
                     if (React.isValidElement(tr)) {
                         const trProps = (tr.props as any);
-                        const row: string[] = [];
+                        const row: TableCell[] = [];
                         const tdElements = React.Children.toArray(trProps.children);
                         tdElements.forEach((td: any) => {
                             if (React.isValidElement(td)) {
                                 const tdProps = (td.props as any);
-                                row.push(extractText(tdProps.children).trim());
+                                row.push({
+                                    content: tdProps.children,
+                                    text: extractText(tdProps.children).trim()
+                                });
                             }
                         });
                         if (row.length > 0) {
@@ -89,7 +102,6 @@ export function parseTableContent(children: React.ReactNode): {
         });
     };
 
-    // Process children
     processChildren(children);
 
     return { headers, rows };

@@ -1,9 +1,10 @@
-import requests
-from typing import Optional, Dict, Any
 import json
+from typing import Any
+
+import requests
 
 
-def get_company_cik(company_name: str) -> Optional[str]:
+def get_company_cik(company_name: str) -> str | None:
     """
     Search for a company's CIK (Central Index Key) number.
 
@@ -42,7 +43,7 @@ def get_company_cik(company_name: str) -> Optional[str]:
         return None
 
 
-def get_sec_filings(company_name: str, filing_type: Optional[str] = None, count: int = 10) -> Dict[str, Any]:
+def get_sec_filings(company_name: str, filing_type: str | None = None, count: int = 10) -> dict[str, Any]:
     """
     Get recent SEC filings for a company.
 
@@ -114,7 +115,7 @@ def get_sec_filings(company_name: str, filing_type: Optional[str] = None, count:
         return {"company": data["name"], "cik": cik, "filings": filings}
 
     except Exception as e:
-        return {"error": f"Error fetching SEC filings: {str(e)}"}
+        return {"error": f"Error fetching SEC filings: {e!s}"}
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ interface AssistantMessageProps {
     sources?: DocumentMetadata[];
     citations?: Citation[];  // NEW: Citations with bbox
     onSourceClick?: (source: DocumentMetadata) => void;
-    onCitationClick?: (citation: Citation) => void;  // NEW: Citation click handler
+    onCitationClick?: (citationId: string) => void;
 }
 
 export function AssistantMessage({
@@ -46,15 +46,11 @@ export function AssistantMessage({
 
             {/* Message Text*/}
             <div className="text-sm leading-relaxed max-w-full overflow-hidden">
-                {content && citations && citations.length > 0 ? (
-                    <MessageContent
-                        content={content}
-                        citations={citations}
-                        onCitationClick={onCitationClick || (() => { })}
-                    />
-                ) : (
-                    <MarkdownContent content={content} />
-                )}
+                <MarkdownContent
+                    content={content}
+                    citations={citations}
+                    onCitationClick={onCitationClick}
+                />
             </div>
 
             {/* Source Citations */}

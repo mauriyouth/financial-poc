@@ -2,12 +2,11 @@
 
 import uuid
 from datetime import datetime
-from typing import Optional
-from opensearchpy import OpenSearch
+
 from loguru import logger
 
-from src.models.entities.chunk_entities import Chunk, ChunkCreate, ChunkSearchRequest, SourceType
 from src.connectors.opensearch_connector import OpenSearchConnector
+from src.models.entities.chunk_entities import Chunk, ChunkCreate, SourceType
 
 
 class ChunkStore:
@@ -96,7 +95,7 @@ class ChunkStore:
 
         return created_chunks
 
-    async def get_chunk(self, chunk_id: str) -> Optional[Chunk]:
+    async def get_chunk(self, chunk_id: str) -> Chunk | None:
         """
         Retrieve chunk by ID.
 
@@ -116,8 +115,8 @@ class ChunkStore:
     async def search_chunks(
         self,
         query: str,
-        source_types: Optional[list[SourceType]] = None,
-        source_ids: Optional[list[str]] = None,
+        source_types: list[SourceType] | None = None,
+        source_ids: list[str] | None = None,
         limit: int = 10,
     ) -> list[Chunk]:
         """
@@ -159,7 +158,7 @@ class ChunkStore:
         return chunks
 
     async def semantic_search(
-        self, embedding: list[float], source_types: Optional[list[SourceType]] = None, limit: int = 10
+        self, embedding: list[float], source_types: list[SourceType] | None = None, limit: int = 10
     ) -> list[Chunk]:
         """
         Semantic search using vector similarity.

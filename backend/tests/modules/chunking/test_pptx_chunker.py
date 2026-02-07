@@ -4,8 +4,8 @@ import pytest
 from pptx import Presentation
 from pptx.util import Inches
 
-from src.modules.chunking.pptx_chunker import PPTXChunker
 from src.models.entities.chunk_entities import SourceType
+from src.modules.chunking.pptx_chunker import PPTXChunker
 
 
 @pytest.fixture

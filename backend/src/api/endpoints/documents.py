@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import RedirectResponse
 
 from src.api import schemas
+from src.core.logging import logger
+from src.connectors.opensearch_connector import OpenSearchConnector
 from src.services.document_service import DocumentService
 from src.stores.postgres.document_store import DocumentStore
 from src.stores.redis.queue_store import QueueStore
 from src.stores.s3.document_s3_store import DocumentS3Store
-from src.core.logging import logger
+from src.configurations.opensearch import OpenSearchSettings
 
 # from sqlalchemy.ext.asyncio import AsyncSession
 # from src.core.database import get_db
@@ -19,7 +21,9 @@ def get_document_service() -> DocumentService:
     store = DocumentStore()
     s3_store = DocumentS3Store()
     queue_store = QueueStore()
-    return DocumentService(store, s3_store, queue_store)
+    opensearch_settings = OpenSearchSettings()
+    opensearch_connector = OpenSearchConnector(opensearch_settings)
+    return DocumentService(store, s3_store, queue_store, opensearch_connector)
 
 
 @router.post("/", response_model=schemas.DocumentMetadata)
@@ -209,6 +213,37 @@ async def get_status(
             file_type=doc.file_type,
             thumbnail_url=await service.get_thumbnail_url(doc.id),
         )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.delete("/{document_id}")
+async def delete_document(document_id: str, service: DocumentService = Depends(get_document_service)) -> dict:
+    """
+    Delete a document and its associated files.
+    """
+    try:
+        await service.delete_document(document_id)
+        return {"status": "success", "message": f"Document {document_id} deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/chunks/{chunk_id}")
+async def get_chunk(chunk_id: str, service: DocumentService = Depends(get_document_service)) -> dict:
+    """
+    Get chunk metadata by ID.
+    """
+    try:
+        chunk = await service.get_chunk(chunk_id)
+        if not chunk:
+            raise HTTPException(status_code=404, detail="Chunk not found")
+        # Return as dict/json
+        return chunk.model_dump()
     except HTTPException:
         raise
     except Exception as e:

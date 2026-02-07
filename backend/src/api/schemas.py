@@ -45,6 +45,8 @@ class Message(BaseModel):
     sources: list[dict] = []
     citations: list[CitationSchema] | None = None  # NEW: Citations with bbox (optional)
     thinking_steps: list[Any] | None = None
+    reasoning_events: list[Any] | None = None
+    agent_transitions: list[Any] | None = None
     created_at: datetime
 
     class Config:

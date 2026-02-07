@@ -2,6 +2,7 @@
 Logging configuration for the application using loguru.
 """
 
+import logging
 import sys
 
 from loguru import logger
@@ -26,5 +27,24 @@ logger.add(
     format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
 )
 
-# Export logger
-__all__ = ["logger"]
+
+# Intercept standard logging
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+
+# Export logger and handler
+__all__ = ["logger", "InterceptHandler"]

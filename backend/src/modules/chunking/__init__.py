@@ -8,8 +8,8 @@ from src.modules.chunking.xlsx_chunker import XLSXChunker
 
 __all__ = [
     "BaseChunker",
+    "DOCXChunker",
     "PDFChunker",
     "PPTXChunker",
-    "DOCXChunker",
     "XLSXChunker",
 ]

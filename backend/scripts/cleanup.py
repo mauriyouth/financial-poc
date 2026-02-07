@@ -9,10 +9,12 @@ import sys
 # Add backend to path
 sys.path.insert(0, "/Users/bakiel/git/financial-poc/backend")
 
-from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
-from src.core.storage import minio_client, settings as minio_settings
+from sqlalchemy.ext.asyncio import create_async_engine
+
 from src.configurations.database import DatabaseSettings
+from src.core.storage import minio_client
+from src.core.storage import settings as minio_settings
 
 # Instantiate settings
 db_settings = DatabaseSettings()

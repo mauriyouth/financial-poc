@@ -61,10 +61,8 @@ class CitationParser:
             except Exception as e:
                 logger.error(f"Error fetching chunk {chunk_id}: {e}")
 
-        # Replace {{cite:id}} with [1], [2], etc.
+        # Keep original {{cite:id}} markers in cleaned_heart. Text will be cleaned by frontend.
         cleaned_text = text
-        for idx, chunk_id in enumerate(unique_citation_ids, 1):
-            cleaned_text = cleaned_text.replace(f"{{{{cite:{chunk_id}}}}}", f"[{idx}]")
 
         logger.info(f"Parsed {len(citations)} citations successfully")
 

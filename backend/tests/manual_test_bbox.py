@@ -2,8 +2,9 @@
 Test script to verify bounding box extraction from Docling documents
 """
 
-from docling_parser import DoclingParser
 import json
+
+from docling_parser import DoclingParser
 
 print("="*60)
 print("BBOX EXTRACTION TEST")
@@ -47,7 +48,7 @@ print(f"   Coverage: {bbox_coverage:.1f}%")
 if len(chunks_with_bbox) == 0:
     print("\n✗ ERROR: No bounding boxes extracted!")
     print("   This indicates the bbox extraction is still not working correctly.")
-    
+
     # Debug: Show first chunk structure
     if chunks:
         print("\n   Debug - First chunk structure:")
@@ -58,18 +59,18 @@ if len(chunks_with_bbox) == 0:
         print(f"   Metadata: {first_chunk.metadata}")
 else:
     print(f"\n✓ SUCCESS: {len(chunks_with_bbox)} chunks have bounding boxes!")
-    
+
     # Test 4: Verify bbox data looks correct
     print("\n4. Verifying bbox data structure...")
     sample_bbox = chunks_with_bbox[0].bbox
-    
+
     print(f"   Sample bbox: {sample_bbox}")
     print(f"   - Page: {sample_bbox.page}")
     print(f"   - Coordinates: ({sample_bbox.x0:.2f}, {sample_bbox.y0:.2f}) to ({sample_bbox.x1:.2f}, {sample_bbox.y1:.2f})")
     print(f"   - Width: {sample_bbox.width:.2f}")
     print(f"   - Height: {sample_bbox.height:.2f}")
     print(f"   - Area: {sample_bbox.area:.2f}")
-    
+
     # Check if coordinates make sense
     if sample_bbox.width > 0 and sample_bbox.height > 0:
         print("   ✓ Bbox coordinates look valid")
@@ -103,10 +104,10 @@ try:
     # Save first 10 chunks to JSON
     sample_chunks = chunks[:10]
     output = [chunk.to_dict() for chunk in sample_chunks]
-    
+
     with open('bbox_test_output.json', 'w', encoding='utf-8') as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-    
+
     print("   ✓ Saved sample output to bbox_test_output.json")
 except Exception as e:
     print(f"   ✗ Failed to save output: {e}")

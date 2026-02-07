@@ -1,13 +1,14 @@
 """Retrieval tool for AI agents to search document chunks."""
 
+from typing import Optional
 from loguru import logger
 
-from src.modules.embeddings.gemini_embedder import GeminiEmbedder
 from src.models.entities.chunk_entities import SourceType
+from src.modules.embeddings.gemini_embedder import GeminiEmbedder
 from src.stores.opensearch.chunk_store import ChunkStore
 
 
-async def create_retrieval_tool(chunk_store: ChunkStore, embedder: GeminiEmbedder):
+def create_retrieval_tool(chunk_store: ChunkStore, embedder: GeminiEmbedder):
     """
     Create retrieval tool for agents.
 
@@ -22,7 +23,7 @@ async def create_retrieval_tool(chunk_store: ChunkStore, embedder: GeminiEmbedde
     async def retrieve_chunks(
         query: str,
         limit: int = 5,
-        source_types: list[str] | None = None,
+        source_types: Optional[list[str]] = None,
     ) -> str:
         """
         Retrieve relevant document chunks for a query.
@@ -71,6 +72,6 @@ async def create_retrieval_tool(chunk_store: ChunkStore, embedder: GeminiEmbedde
 
         except Exception as e:
             logger.error(f"Error in retrieval tool: {e}")
-            return f"Error retrieving documents: {str(e)}"
+            return f"Error retrieving documents: {e!s}"
 
     return retrieve_chunks

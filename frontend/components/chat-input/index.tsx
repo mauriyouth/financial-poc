@@ -3,7 +3,8 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, Send, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Send, Loader2, Bot, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DocumentMetadata, uploadDocument } from '@/lib/api/documents';
 import { improvePrompt } from '@/lib/api/chat';
@@ -11,6 +12,7 @@ import { improvePrompt } from '@/lib/api/chat';
 import { ModelSelector } from './model-selector';
 import { FileUploadButton, DataSource } from './file-upload-button';
 import { FilePreviewList, AttachedDocument } from './file-preview-list';
+import { AgentSelector } from '../chat-area/AgentSelector';
 
 export type { DataSource };
 
@@ -25,6 +27,8 @@ interface ChatInputProps {
     onDataSourceChange?: (source: DataSource) => void;
     model?: string;
     onModelChange?: (model: string) => void;
+    selectedAgent?: string | null;
+    onAgentChange?: (agent: string | null) => void;
     className?: string;
 }
 
@@ -39,6 +43,8 @@ export function ChatInput({
     onDataSourceChange,
     model,
     onModelChange,
+    selectedAgent,
+    onAgentChange,
     className
 }: ChatInputProps) {
     const [attachedDocs, setAttachedDocs] = useState<AttachedDocument[]>([]);
@@ -138,6 +144,7 @@ export function ChatInput({
 
             {/* Input Container */}
             <div className="rounded-3xl shadow-lg focus-within:shadow-xl transition-all overflow-hidden flex flex-col bg-card border border-border">
+
                 <Textarea
                     ref={textareaRef}
                     value={value}
@@ -148,6 +155,23 @@ export function ChatInput({
                     disabled={isLoading}
                     rows={1}
                 />
+                {/* Selected Agent Badge - Bottom Position */}
+                {selectedAgent && onAgentChange && (
+                    <div className="px-4 pb-2">
+                        <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-white border-transparent gap-1.5 pr-1 py-1 pl-2.5 h-7 shadow-sm">
+                            <Bot className="h-3.5 w-3.5 text-blue-100" />
+                            <span className="text-sm font-medium">{selectedAgent.replace(/_/g, ' ')}</span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 ml-1 hover:bg-blue-500/50 text-blue-100 hover:text-white rounded-full"
+                                onClick={() => onAgentChange(null)}
+                            >
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </Badge>
+                    </div>
+                )}
 
                 {/* Actions Bar */}
                 <div className="flex items-center justify-between p-2 bg-transparent">
@@ -198,6 +222,16 @@ export function ChatInput({
                             </div>
                         )}
 
+                        {/* Agent Selector */}
+                        {onAgentChange && (
+                            <div className="relative group">
+                                <AgentSelector selectedAgent={selectedAgent ?? null} onAgentChange={onAgentChange} />
+                                <span className="absolute rounded-lg bottom-full right-0 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                    Select AI Agent
+                                </span>
+                            </div>
+                        )}
+
                         {/* Send Button */}
                         <div className="relative group">
                             <Button
@@ -220,6 +254,6 @@ export function ChatInput({
             <div className="text-center text-xs text-muted-foreground/50">
                 AI available tools: Python Code Interpreter, Web Search, Knowledge Base Retrieval
             </div>
-        </div>
+        </div >
     );
 }

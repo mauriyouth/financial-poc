@@ -1,6 +1,5 @@
 """Test chunking module init and integration."""
 
-import pytest
 
 from src.modules.chunking import (
     BaseChunker,
