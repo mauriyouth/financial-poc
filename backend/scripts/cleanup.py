@@ -20,7 +20,7 @@ from src.core.storage import settings as minio_settings
 db_settings = DatabaseSettings()
 
 
-async def cleanup_database():
+async def cleanup_database() -> None:
     """Truncate documents, conversations, and messages tables, and add missing column."""
     print("📊 Cleaning up database...")
 
@@ -45,7 +45,7 @@ async def cleanup_database():
     print("✅ Database cleanup complete")
 
 
-def cleanup_s3():
+def cleanup_s3() -> None:
     """Clear all objects from S3 bucket."""
     print("🗑️  Cleaning up S3 bucket...")
 
@@ -59,12 +59,12 @@ def cleanup_s3():
                 print(f"  ✓ Deleted: {obj.object_name}")
             print(f"✅ Cleared {len(objects)} objects from bucket '{bucket_name}'")
         else:
-            print(f"ℹ️  Bucket '{bucket_name}' is already empty")
+            print(f"ℹ️  Bucket '{bucket_name}' is already empty")  # noqa: RUF001
     except Exception as e:
         print(f"⚠️  Error clearing bucket: {e}")
 
 
-async def main():
+async def main() -> None:
     print("\n🧹 Starting cleanup...\n")
 
     # Cleanup database

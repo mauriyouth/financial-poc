@@ -4,11 +4,13 @@ from src.connectors.anthropic_connector import AnthropicConnector
 from src.connectors.gemini_connector import GeminiConnector
 from src.connectors.google_adk_connector import GoogleADKConnector
 from src.core.logging import logger
-from src.modules.agents.orchestrator_agent import OrchestratorAgent
-from src.modules.agents.runner import AgentRunner
-from src.modules.agents.prompts import get_default_prompt
-from src.modules.agents.simple_chat_agent import SimpleChatAgent
 from src.models.all_models import Message
+from src.modules.agents.orchestrator_agent import OrchestratorAgent
+from src.modules.agents.prompts import get_default_prompt
+from src.modules.agents.runner import AgentRunner
+from src.modules.agents.simple_chat_agent import SimpleChatAgent
+from src.modules.agents.verification_agent import VerificationAgent
+from src.stores.opensearch.chunk_store import ChunkStore
 
 
 class AIService:
@@ -20,6 +22,7 @@ class AIService:
         gemini_connector: GeminiConnector,
         adk_connector: GoogleADKConnector,
         orchestrator: OrchestratorAgent,
+        chunk_store: ChunkStore | None = None,
     ) -> None:
         """
         Initialize AI Service.
@@ -32,6 +35,8 @@ class AIService:
         """
         self.agent_runner = AgentRunner(orchestrator)
         self.simple_chat_agent = SimpleChatAgent(adk_connector)
+        self.verification_agent = VerificationAgent(adk_connector)
+        self.chunk_store = chunk_store
 
         # Kept for compatibility if accessed directly, but logic is moved
         self.adk_connector = adk_connector
@@ -79,3 +84,70 @@ class AIService:
         # 3. Otherwise, delegate to AgentRunner (auto-routing/orchestrator)
         async for chunk in self.agent_runner.stream_generate(prompt, agent_name=None, history=history):
             yield chunk
+
+    async def verify_response(self, query: str, draft_response: str, valid_chunk_ids: list[str]) -> str:
+        """
+        Verify and correct citations in the response using VerificationAgent.
+        """
+        if not valid_chunk_ids:
+            # If no chunks were retrieved, we can't verify citations.
+            # But we should still check if there are hallucinations (citations to nothing).
+            pass
+
+        logger.info(f"Verifying response against {len(valid_chunk_ids)} valid chunks")
+
+        # Fetch actual content for the valid chunks
+        chunk_texts = []
+        if self.chunk_store:
+            for cid in valid_chunk_ids:
+                try:
+                    chunk = await self.chunk_store.get_chunk(cid)
+                    if chunk:
+                        chunk_texts.append(f"Source ID: {cid}\nContent: {chunk.content}")
+                except Exception as e:
+                    logger.warning(f"Failed to fetch chunk content for verification: {cid} - {e}")
+
+        valid_content_str = "\n\n".join(chunk_texts)
+
+        # Format the prompt for verification
+        # We use the agent definition's instruction as system prompt,
+        # and pass the specific task as user message.
+        agent = self.verification_agent.get_agent()
+        if not agent:
+            logger.warning("Verification agent not available, returning draft")
+            return draft_response
+
+        # logic to run the agent non-streaming
+        # The ADK agent.generate_response(user_input) is synchronous/blocking or async?
+        # LlmAgent.generate_content is available.
+
+        # Construct the verification input
+        verify_input = f"""
+Query: {query}
+
+Reference Content (Verified Chunks):
+{valid_content_str}
+
+Draft Response:
+{draft_response}
+"""
+
+        # We need to run this independent of the main runner history loop
+        # We can use adk_connector.generate_content BUT we want to use the agent's logic/prompt.
+        # Actually GoogleADKConnector returns an LlmAgent which has `query(input)`?
+        # Let's check LlmAgent interface or usage in runner.
+        # Runner uses `agent.query(...)` generator.
+
+        # For simplicity, we can reuse the agent runner or just call the simple agent logic.
+        # But `agent` is an `LlmAgent` from `google.adk`.
+        # Let's try to use the `agent` directly.
+
+        try:
+            # We need a new session / chat for verification to avoid polluting main history context
+            response = await agent.generate_response(verify_input)
+            # response is a ModelResponse? Or text?
+            # ADK 0.1.0 LlmAgent.generate_response returns a response object with .text
+            return response.text.strip()
+        except Exception as e:
+            logger.error(f"Verification failed: {e}")
+            return draft_response

@@ -101,5 +101,5 @@ async def test_pdf_chunker_error_handling():
     """Test error handling for invalid PDF."""
     chunker = PDFChunker()
 
-    with pytest.raises(Exception):
+    with pytest.raises(FileNotFoundError):
         await chunker.chunk(file_path="/nonexistent/file.pdf", source_id="test_pdf_999", source_name="nonexistent.pdf")

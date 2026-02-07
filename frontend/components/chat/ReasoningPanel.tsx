@@ -4,26 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
-interface ReasoningEvent {
-    type: "thinking" | "tool_call" | "tool_result" | "llm_error" | "agent_start" | "agent_info";
-    agent_name?: string;
-    model?: string;
-    tools_available?: string[];
-    tool_name?: string;
-    arguments?: Record<string, any>;
-    result?: Record<string, any>;
-    content?: string;
-    error_code?: string;
-    error_message?: string;
-    timestamp?: string;
-}
+import { StreamEvent } from "@/lib/api/chat";
 
 interface ReasoningPanelProps {
-    events: ReasoningEvent[];
-    agentName: string;
+    events: StreamEvent[];
 }
 
-export function ReasoningPanel({ events, agentName }: ReasoningPanelProps) {
+export function ReasoningPanel({ events }: ReasoningPanelProps) {
     const [isExpanded, setIsExpanded] = useState(true);
 
     if (events.length === 0) return null;
@@ -85,13 +72,13 @@ export function ReasoningPanel({ events, agentName }: ReasoningPanelProps) {
     );
 }
 
-function ReasoningStep({ event, index }: { event: ReasoningEvent; index: number }) {
+function ReasoningStep({ event, index }: { event: StreamEvent; index: number }) {
     const getStepInfo = () => {
         switch (event.type) {
             case "thinking":
                 return {
                     title: "Thinking",
-                    subtitle: event.arguments?.thought || event.result?.thought || event.content || "Processing...",
+                    subtitle: (event.arguments?.thought as string) || (event.result?.thought as string) || event.content || "Processing...",
                     dotColor: "bg-blue-500",
                 };
             case "tool_call":
@@ -113,12 +100,14 @@ function ReasoningStep({ event, index }: { event: ReasoningEvent; index: number 
                     dotColor: "bg-red-500",
                 };
             case "agent_start":
-            case "agent_info":
                 return {
                     title: `Agent: ${event.agent_name || 'Unknown'}`,
-                    subtitle: event.arguments?.reason || "Orchestrating task...",
+                    subtitle: (event.arguments?.reason as string) || "Orchestrating task...",
                     dotColor: "bg-orange-500",
                 };
+            // agent_info is not in StreamEvent, maybe I should add it or handle it?
+            // "agent_info" was in local interface but StreamEvent has "agent_start" | "agent_end".
+            // I'll stick to what StreamEvent has.
             default:
                 return {
                     title: event.type,

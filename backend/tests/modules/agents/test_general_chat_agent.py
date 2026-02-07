@@ -1,11 +1,13 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.modules.agents.general_chat_agent import GeneralChatAgent
+from uuid import uuid4
+
+import pytest
+
 from src.connectors.google_adk_connector import GoogleADKConnector
 from src.connectors.opensearch_connector import OpenSearchConnector
-from src.modules.embeddings.gemini_embedder import GeminiEmbedder
 from src.models.entities.chunk_entities import Chunk, SourceType
-from uuid import uuid4
+from src.modules.agents.general_chat_agent import GeneralChatAgent
+from src.modules.embeddings.gemini_embedder import GeminiEmbedder
 
 
 @pytest.fixture

@@ -1,22 +1,22 @@
 import React from 'react';
-import { Message, Citation } from '@/lib/api/chat';
+import { Message } from '@/lib/api/chat';
 import { DocumentMetadata } from '@/lib/api/documents';
 import { cn } from '@/lib/utils';
 import { UserMessage } from './UserMessage';
 import { AssistantMessage } from './AssistantMessage';
 import { ReasoningPanel } from '@/components/chat/ReasoningPanel';
-import { AgentTransition } from '@/components/chat/AgentTransition';
 
 interface MessageListProps {
     messages: Message[];
     onSourceClick?: (source: DocumentMetadata) => void;
     onCitationClick?: (citationId: string) => void;
+    citationStatus?: Record<string, 'valid' | 'invalid' | 'loading' | 'error'>;
 }
 
-export function MessageList({ messages, onSourceClick, onCitationClick }: MessageListProps) {
+export function MessageList({ messages, onSourceClick, onCitationClick, citationStatus }: MessageListProps) {
     return (
         <>
-            {messages.map((msg, index) => (
+            {messages.map((msg) => (
                 <React.Fragment key={msg.id}>
 
 
@@ -24,7 +24,6 @@ export function MessageList({ messages, onSourceClick, onCitationClick }: Messag
                     {msg.role === 'assistant' && msg.reasoning_events && msg.reasoning_events.length > 0 && (
                         <ReasoningPanel
                             events={msg.reasoning_events}
-                            agentName={msg.agent_transitions?.[0]?.to || 'Agent'}
                         />
                     )}
 
@@ -50,6 +49,7 @@ export function MessageList({ messages, onSourceClick, onCitationClick }: Messag
                                     citations={msg.citations}
                                     onSourceClick={onSourceClick}
                                     onCitationClick={onCitationClick}
+                                    citationStatus={citationStatus}
                                 />
                             )}
                         </div>

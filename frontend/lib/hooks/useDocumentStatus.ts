@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { getWsBaseUrl } from '../config';
 
 export interface DocumentStatusUpdate {
     type: 'document_status';
@@ -13,14 +14,13 @@ export interface DocumentStatusUpdate {
 
 export function useDocumentStatus(documentId: string | null) {
     const [status, setStatus] = useState<string>('pending');
-    const [metadata, setMetadata] = useState<Record<string, any>>({});
+    const [metadata, setMetadata] = useState<Record<string, unknown>>({});
     const wsRef = useRef<WebSocket | null>(null);
 
     useEffect(() => {
         if (!documentId) return;
 
         // Connect to WebSocket
-        const { getWsBaseUrl } = require('../config');
         const ws = new WebSocket(`${getWsBaseUrl()}/ws`);
         wsRef.current = ws;
 

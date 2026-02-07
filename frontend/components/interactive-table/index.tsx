@@ -2,9 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ArrowUp, ArrowDown, ArrowUpDown, Download, Columns3 } from 'lucide-react';
-import { TableToolbar } from './table-toolbar';
-import { ColumnVisibilityMenu } from './column-visibility-menu';
-import { parseTableContent, sortTableData, exportToExcel, filterVisibleColumns, TableCell } from './utils';
+import { parseTableContent, exportToExcel, filterVisibleColumns } from './utils';
 
 interface InteractiveTableProps {
     children: React.ReactNode;
@@ -28,10 +26,6 @@ export function InteractiveTable({ children }: InteractiveTableProps) {
         if (sortColumn === null || sortDirection === null) {
             return rows;
         }
-        const dataForSorting = rows.map(row => row.map(cell => cell.text));
-        const sortedIndices = sortTableData(dataForSorting, sortColumn, sortDirection)
-            .map(sortedRow => rows.findIndex(originalRow => originalRow.every((cell, i) => cell.text === sortedRow[i])));
-
         // Simpler way: sort the actual objects based on their text property
         return [...rows].sort((a, b) => {
             const aVal = a[sortColumn]?.text || '';

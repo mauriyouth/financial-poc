@@ -22,9 +22,9 @@ export default function DocumentViewer() {
     const [contentHtml, setContentHtml] = useState<string>('');
     const [contentJson, setContentJson] = useState<string>('');
 
-    const extractString = (data: DocumentMetadata | string | { content: string } | any): string => {
+    const extractString = (data: DocumentMetadata | string | { content: string } | unknown): string => {
         if (typeof data === 'string') return data;
-        if (data && typeof data === 'object' && 'content' in data) return data.content;
+        if (data && typeof data === 'object' && 'content' in data) return (data as { content: string }).content;
         return '';
     };
 

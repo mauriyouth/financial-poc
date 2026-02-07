@@ -1,20 +1,17 @@
+import orjson
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-import orjson
-
-# from sqlalchemy.ext.asyncio import AsyncSession
-# from src.core.database import get_db
 from pydantic import BaseModel
 
 from src.api import schemas  # We might need new schemas for Chat
+from src.configurations.opensearch import OpenSearchSettings
 from src.configurations.settings import settings
 from src.connectors.anthropic_connector import AnthropicConnector
 from src.connectors.gemini_connector import GeminiConnector
 from src.connectors.google_adk_connector import GoogleADKConnector
 from src.connectors.opensearch_connector import OpenSearchConnector
-from src.configurations.opensearch import OpenSearchSettings
-from src.modules.embeddings.gemini_embedder import GeminiEmbedder
 from src.modules.agents.service import AIService
+from src.modules.embeddings.gemini_embedder import GeminiEmbedder
 from src.services.chat_service import ChatService
 from src.stores.postgres.conversation_store import ConversationStore
 
@@ -71,8 +68,8 @@ def get_chat_service() -> ChatService:
     ai_service = AIService(anthropic, gemini, adk_connector, orchestrator)
 
     # Create conversation store and chat service
-    from src.stores.postgres.document_store import DocumentStore
     from src.stores.opensearch.chunk_store import ChunkStore
+    from src.stores.postgres.document_store import DocumentStore
 
     conv_store = ConversationStore()
     doc_store = DocumentStore()

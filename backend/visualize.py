@@ -13,19 +13,21 @@ from PIL import Image, ImageDraw, ImageFont
 
 # Color palette for different chunk types
 COLORS = {
-    'text': (0, 128, 255, 100),      # Blue
-    'title': (255, 0, 0, 100),       # Red
-    'section_header': (255, 128, 0, 100),  # Orange
-    'table': (0, 255, 0, 100),       # Green
-    'list_item': (255, 0, 255, 100), # Magenta
-    'figure': (255, 255, 0, 100),    # Yellow
-    'caption': (128, 0, 255, 100),   # Purple
-    'default': (128, 128, 128, 100)  # Gray
+    "text": (0, 128, 255, 100),  # Blue
+    "title": (255, 0, 0, 100),  # Red
+    "section_header": (255, 128, 0, 100),  # Orange
+    "table": (0, 255, 0, 100),  # Green
+    "list_item": (255, 0, 255, 100),  # Magenta
+    "figure": (255, 255, 0, 100),  # Yellow
+    "caption": (128, 0, 255, 100),  # Purple
+    "default": (128, 128, 128, 100),  # Gray
 }
+
 
 def get_color_for_type(chunk_type: str) -> tuple[int, int, int, int]:
     """Get color for a chunk type."""
-    return COLORS.get(chunk_type, COLORS['default'])
+    return COLORS.get(chunk_type, COLORS["default"])
+
 
 def pdf_to_images(pdf_path: str, dpi: int = 150) -> list[Image.Image]:
     """Convert PDF pages to PIL Images."""
@@ -50,7 +52,8 @@ def pdf_to_images(pdf_path: str, dpi: int = 150) -> list[Image.Image]:
     doc.close()
     return images
 
-def draw_bboxes_on_images(images: list[Image.Image], chunks, dpi: int = 150):
+
+def draw_bboxes_on_images(images: list[Image.Image], chunks: list, dpi: int = 150) -> list[Image.Image]:
     """Draw bounding boxes on images."""
     print(f"\nDrawing {len(chunks)} bounding boxes...")
 
@@ -75,7 +78,7 @@ def draw_bboxes_on_images(images: list[Image.Image], chunks, dpi: int = 150):
             continue
 
         img = annotated_images[page_num]
-        draw = ImageDraw.Draw(img, 'RGBA')
+        draw = ImageDraw.Draw(img, "RGBA")
         page_height = img.height / (dpi / 72)  # Convert pixels to points
 
         print(f"\n  Page {page_num}:")
@@ -87,7 +90,9 @@ def draw_bboxes_on_images(images: list[Image.Image], chunks, dpi: int = 150):
         if page_chunks:
             first_bbox = page_chunks[0].bbox
             print("\n    Debug - First chunk bbox:")
-            print(f"      PDF (BOTTOMLEFT): x=[{first_bbox.x0:.1f}, {first_bbox.x1:.1f}], y=[{first_bbox.y0:.1f}, {first_bbox.y1:.1f}]")
+            print(
+                f"      PDF (BOTTOMLEFT): x=[{first_bbox.x0:.1f}, {first_bbox.x1:.1f}], y=[{first_bbox.y0:.1f}, {first_bbox.y1:.1f}]"
+            )
             print(f"      In PDF: y0={first_bbox.y0:.1f} is BOTTOM, y1={first_bbox.y1:.1f} is TOP")
 
         print()
@@ -136,9 +141,9 @@ def draw_bboxes_on_images(images: list[Image.Image], chunks, dpi: int = 150):
                 # Draw filled rectangle with transparency
                 draw.rectangle(
                     [(x0, y0_top), (x1, y1_top)],
-                    outline=color[:3] + (255,),  # Solid outline
+                    outline=(*color[:3], 255),  # Solid outline
                     fill=color,  # Semi-transparent fill
-                    width=2
+                    width=2,
                 )
 
                 # Draw label
@@ -147,7 +152,7 @@ def draw_bboxes_on_images(images: list[Image.Image], chunks, dpi: int = 150):
                 # Use default font
                 try:
                     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 10)
-                except:
+                except Exception:
                     font = ImageFont.load_default()
 
                 # Draw text background
@@ -167,7 +172,8 @@ def draw_bboxes_on_images(images: list[Image.Image], chunks, dpi: int = 150):
 
     return annotated_images
 
-def save_annotated_pages(images: list[Image.Image], output_dir: str = "annotated_pages"):
+
+def save_annotated_pages(images: list[Image.Image], output_dir: str = "annotated_pages") -> None:
     """Save annotated images."""
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
@@ -175,24 +181,25 @@ def save_annotated_pages(images: list[Image.Image], output_dir: str = "annotated
     print(f"\nSaving annotated pages to {output_dir}/")
 
     for i, img in enumerate(images):
-        output_file = output_path / f"page_{i+1}_annotated.png"
+        output_file = output_path / f"page_{i + 1}_annotated.png"
         img.save(output_file, "PNG")
         print(f"  Saved: {output_file}")
 
     print(f"\n✓ Saved {len(images)} annotated pages")
 
-def create_side_by_side_comparison(original_images: list[Image.Image],
-                                   annotated_images: list[Image.Image],
-                                   output_dir: str = "annotated_pages"):
+
+def create_side_by_side_comparison(
+    original_images: list[Image.Image], annotated_images: list[Image.Image], output_dir: str = "annotated_pages"
+) -> None:
     """Create side-by-side comparison images."""
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
 
     print("\nCreating side-by-side comparisons...")
 
-    for i, (orig, annot) in enumerate(zip(original_images, annotated_images)):
+    for i, (orig, annot) in enumerate(zip(original_images, annotated_images, strict=False)):
         # Create new image with double width
-        combined = Image.new('RGB', (orig.width * 2, orig.height))
+        combined = Image.new("RGB", (orig.width * 2, orig.height))
         combined.paste(orig, (0, 0))
         combined.paste(annot, (orig.width, 0))
 
@@ -200,15 +207,16 @@ def create_side_by_side_comparison(original_images: list[Image.Image],
         draw = ImageDraw.Draw(combined)
         draw.line([(orig.width, 0), (orig.width, orig.height)], fill=(0, 0, 0), width=3)
 
-        output_file = output_path / f"page_{i+1}_comparison.png"
+        output_file = output_path / f"page_{i + 1}_comparison.png"
         combined.save(output_file, "PNG")
         print(f"  Saved: {output_file}")
 
-def main():
+
+def main() -> None:
     """Main function to visualize bboxes."""
-    print("="*70)
+    print("=" * 70)
     print("BOUNDING BOX VISUALIZATION TOOL")
-    print("="*70)
+    print("=" * 70)
 
     # Configuration
     pdf_path = "./tests/documents/credit-agreement.pdf"  # UPDATE THIS
@@ -229,6 +237,7 @@ def main():
     except Exception as e:
         print(f"✗ Error parsing document: {e}")
         import traceback
+
         traceback.print_exc()
         return
 
@@ -274,6 +283,7 @@ def main():
     except Exception as e:
         print(f"✗ Error drawing bboxes: {e}")
         import traceback
+
         traceback.print_exc()
         return
 
@@ -286,20 +296,22 @@ def main():
     except Exception as e:
         print(f"✗ Error saving results: {e}")
         import traceback
+
         traceback.print_exc()
         return
 
     # Final summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("✅ VISUALIZATION COMPLETE!")
-    print("="*70)
+    print("=" * 70)
     print(f"\nCheck the '{output_dir}' folder for:")
     print("  - page_N_annotated.png : Pages with bboxes drawn")
     print("  - page_N_comparison.png : Side-by-side original vs annotated")
     print("\nColor Legend:")
     for chunk_type, color in list(COLORS.items())[:7]:
         print(f"  {chunk_type:15} : RGB{color[:3]}")
-    print("="*70)
+    print("=" * 70)
+
 
 if __name__ == "__main__":
     main()

@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
-from typing import TYPE_CHECKING, Any, Optional
+import asyncio  # noqa: TC003
+from typing import TYPE_CHECKING, Any
 
 from google.adk.plugins.base_plugin import BasePlugin
-from google.genai import types
 
 from src.core.logging import logger
 
@@ -15,10 +14,10 @@ if TYPE_CHECKING:
     from google.adk.agents.callback_context import CallbackContext
     from google.adk.agents.invocation_context import InvocationContext
     from google.adk.events.event import Event
-    from google.adk.models.llm_request import LlmRequest
     from google.adk.models.llm_response import LlmResponse
     from google.adk.tools.base_tool import BaseTool
     from google.adk.tools.tool_context import ToolContext
+    from google.genai import types
 
 
 class StreamingReasoningPlugin(BasePlugin):
@@ -43,7 +42,7 @@ class StreamingReasoningPlugin(BasePlugin):
 
     async def before_agent_callback(
         self, *, agent: BaseAgent, callback_context: CallbackContext
-    ) -> Optional[types.Content]:
+    ) -> types.Content | None:
         """Log agent execution start."""
         await self._emit_event(
             "agent_start",
@@ -58,7 +57,7 @@ class StreamingReasoningPlugin(BasePlugin):
 
     async def after_agent_callback(
         self, *, agent: BaseAgent, callback_context: CallbackContext
-    ) -> Optional[types.Content]:
+    ) -> types.Content | None:
         """Log agent execution completion."""
         await self._emit_event(
             "agent_end",
@@ -71,7 +70,7 @@ class StreamingReasoningPlugin(BasePlugin):
 
     async def after_model_callback(
         self, *, callback_context: CallbackContext, llm_response: LlmResponse
-    ) -> Optional[LlmResponse]:
+    ) -> LlmResponse | None:
         """Log LLM response."""
         if llm_response.error_code:
             await self._emit_event(
@@ -95,7 +94,7 @@ class StreamingReasoningPlugin(BasePlugin):
             },
         )
 
-    async def on_event_callback(self, *, invocation_context: InvocationContext, event: Event) -> Optional[Event]:
+    async def on_event_callback(self, *, invocation_context: InvocationContext, event: Event) -> Event | None:
         """Inspect events for thought content and filter them out."""
         if event.content and event.content.parts:
             # Separate thoughts from content
@@ -139,7 +138,7 @@ class StreamingReasoningPlugin(BasePlugin):
         tool: BaseTool,
         tool_args: dict[str, Any],
         tool_context: ToolContext,
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Log tool execution start."""
         await self._emit_event(
             "tool_call",
@@ -159,7 +158,7 @@ class StreamingReasoningPlugin(BasePlugin):
         tool_args: dict[str, Any],
         tool_context: ToolContext,
         result: dict,
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Log tool execution completion."""
         await self._emit_event(
             "tool_result",
@@ -179,7 +178,7 @@ class StreamingReasoningPlugin(BasePlugin):
         tool_args: dict[str, Any],
         tool_context: ToolContext,
         error: Exception,
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Log tool error."""
         await self._emit_event(
             "tool_error",

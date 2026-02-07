@@ -1,6 +1,6 @@
 export const getApiBaseUrl = () => {
     if (typeof window !== 'undefined') {
-        const injectedUrl = (window as any).ENV?.NEXT_PUBLIC_API_URL;
+        const injectedUrl = (window as unknown as { ENV?: { NEXT_PUBLIC_API_URL?: string } }).ENV?.NEXT_PUBLIC_API_URL;
         if (injectedUrl) return injectedUrl;
     }
     // Server-side: prefer internal API_URL, fallback to public URL or localhost

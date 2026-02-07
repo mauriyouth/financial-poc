@@ -1,11 +1,12 @@
 import io
 import os
 import uuid
+from collections.abc import Iterator
 
 from fastapi import HTTPException, UploadFile
 
-from src.core.logging import logger
 from src.connectors.opensearch_connector import OpenSearchConnector
+from src.core.logging import logger
 from src.models.all_models import Document, ProcessingStatus
 from src.models.entities.chunk_entities import Chunk
 from src.stores.opensearch.chunk_store import ChunkStore
@@ -29,7 +30,7 @@ class DocumentService:
 
         logger.info("DocumentService initialized")
 
-    async def upload_document(self, file: UploadFile) -> Document:
+    async def upload_document(self, file: UploadFile, thread_id: str | None = None) -> Document:
         doc_id = str(uuid.uuid4())
         logger.info(f"Starting document upload: {file.filename} (ID: {doc_id})")
 
@@ -81,9 +82,10 @@ class DocumentService:
             file_path=file_path,
             status=ProcessingStatus.PENDING,
             file_type=file_type,
+            thread_id=thread_id,
         )
         created_doc = await self.store.create_document(doc)
-        logger.info(f"Created document in DB: {doc_id}")
+        logger.info(f"Created document in DB: {doc_id} (Thread: {thread_id})")
 
         # 3. If PPTX, convert to PDF for preview
         pdf_path = None
@@ -154,8 +156,8 @@ class DocumentService:
 
         return doc
 
-    async def list_documents(self) -> list[Document]:
-        return await self.store.list_documents()
+    async def list_documents(self, thread_id: str | None = None) -> list[Document]:
+        return await self.store.list_documents(thread_id)
 
     async def get_document(self, doc_id: str) -> Document | None:
         return await self.store.get_document(doc_id)
@@ -263,6 +265,29 @@ class DocumentService:
         # Otherwise use original file
         logger.info(f"Using original file for {doc_id}: {doc.file_path}")
         return self.s3_store.get_presigned_url(doc.file_path)
+
+    async def get_document_stream(self, doc_id: str, for_preview: bool = True) -> Iterator[bytes]:
+        """
+        Get file stream for document content.
+
+        Args:
+            doc_id: Document ID
+            for_preview: If True and document is a presentation, streams PDF preview
+
+        Returns:
+            generator: File content stream
+        """
+        doc = await self.store.get_document(doc_id)
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        # Determine path (preview PDF or original file)
+        file_path = doc.file_path
+        if for_preview and doc.file_type == "presentation" and doc.pdf_preview_path:
+            file_path = doc.pdf_preview_path
+
+        logger.info(f"Streaming file for {doc_id}: {file_path}")
+        return self.s3_store.get_file_stream(file_path)
 
     async def get_document_status(self, doc_id: str) -> Document:
         """

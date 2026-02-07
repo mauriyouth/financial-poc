@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -5,9 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.endpoints import chat, documents, hello, websocket
-from src.core.database import create_db_and_tables
 from src.configurations.settings import settings
-import os
+from src.core.database import create_db_and_tables
 
 
 @asynccontextmanager

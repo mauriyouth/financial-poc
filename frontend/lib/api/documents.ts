@@ -13,13 +13,13 @@ export interface DocumentMetadata {
     metadata?: {
         summary?: string;
         chunk_count?: number;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
 export type DocumentContent = string | { content: string; metadata: Record<string, unknown> };
 
-export const uploadDocument = async (file: File): Promise<DocumentMetadata> => {
+export const uploadDocument = async (file: File, threadId?: string): Promise<DocumentMetadata> => {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -27,6 +27,9 @@ export const uploadDocument = async (file: File): Promise<DocumentMetadata> => {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
+        params: {
+            thread_id: threadId
+        }
     });
     return response.data;
 };
@@ -43,8 +46,12 @@ export const getDocumentContent = async (id: string, format: 'markdown' | 'html'
     return response.data;
 };
 
-export const getDocuments = async (): Promise<DocumentMetadata[]> => {
-    const response = await api.get<DocumentMetadata[]>('/documents/');
+export const getDocuments = async (threadId?: string): Promise<DocumentMetadata[]> => {
+    const response = await api.get<DocumentMetadata[]>('/documents/', {
+        params: {
+            thread_id: threadId
+        }
+    });
     return response.data;
 };
 
@@ -100,7 +107,14 @@ export interface Chunk {
     content: string;
     metadata: {
         page_number?: number;
-        [key: string]: any;
+        [key: string]: unknown;
+    };
+    bbox?: {
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
     };
 }
 

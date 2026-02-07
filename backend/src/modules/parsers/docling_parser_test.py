@@ -12,15 +12,14 @@ try:
     from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
     from docling.document_converter import DocumentConverter, PdfFormatOption
-except ImportError:
-    raise ImportError(
-        "Docling is not installed. Install it with: pip install docling"
-    )
+except ImportError as e:
+    raise ImportError("Docling is not installed. Install it with: pip install docling") from e
 
 
 @dataclass
 class BoundingBox:
     """Represents a bounding box with coordinates."""
+
     x0: float  # left
     y0: float  # top
     x1: float  # right
@@ -30,13 +29,13 @@ class BoundingBox:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
-            'x0': self.x0,
-            'y0': self.y0,
-            'x1': self.x1,
-            'y1': self.y1,
-            'page': self.page,
-            'width': self.width,
-            'height': self.height
+            "x0": self.x0,
+            "y0": self.y0,
+            "x1": self.x1,
+            "y1": self.y1,
+            "page": self.page,
+            "width": self.width,
+            "height": self.height,
         }
 
     @property
@@ -61,6 +60,7 @@ class BoundingBox:
 @dataclass
 class DocumentChunk:
     """Represents a chunk of document content with metadata."""
+
     text: str
     bbox: BoundingBox | None
     chunk_type: str  # 'text', 'title', 'table', 'list', 'figure', etc.
@@ -69,21 +69,21 @@ class DocumentChunk:
     def to_dict(self) -> dict[str, Any]:
         """Convert chunk to dictionary."""
         return {
-            'text': self.text,
-            'bbox': self.bbox.to_dict() if self.bbox else None,
-            'chunk_type': self.chunk_type,
-            'metadata': self.metadata
+            "text": self.text,
+            "bbox": self.bbox.to_dict() if self.bbox else None,
+            "chunk_type": self.chunk_type,
+            "metadata": self.metadata,
         }
 
     def __repr__(self) -> str:
-        text_preview = self.text[:50] + '...' if len(self.text) > 50 else self.text
+        text_preview = self.text[:50] + "..." if len(self.text) > 50 else self.text
         return f"Chunk(type={self.chunk_type}, text='{text_preview}', bbox={self.bbox})"
 
 
 class DoclingParser:
     """
     A parser class that uses Docling to parse documents and extract chunks with bounding boxes.
-    
+
     Supports: PDF, DOCX, PPTX, images, HTML, and more.
     """
 
@@ -93,11 +93,11 @@ class DoclingParser:
         extract_images: bool = True,
         ocr_enabled: bool = True,
         chunk_by_page: bool = False,
-        max_chunk_size: int | None = None
+        max_chunk_size: int | None = None,
     ):
         """
         Initialize the Docling parser.
-        
+
         Args:
             extract_tables: Whether to extract tables
             extract_images: Whether to extract images
@@ -118,18 +118,16 @@ class DoclingParser:
 
         # Create converter with format_options parameter (correct API)
         self.converter = DocumentConverter(
-            format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-            }
+            format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)}
         )
 
     def parse(self, file_path: str) -> list[DocumentChunk]:
         """
         Parse a document and return chunks with bounding boxes.
-        
+
         Args:
             file_path: Path to the document file
-            
+
         Returns:
             List of DocumentChunk objects containing text and bounding boxes
         """
@@ -146,7 +144,7 @@ class DoclingParser:
 
         # Use iterate_items() - the recommended Docling method
         # This gives us all items with their hierarchy level
-        for item, level in doc.iterate_items():
+        for item, _ in doc.iterate_items():
             chunk = self._process_element(item)
             if chunk:
                 chunks.append(chunk)
@@ -157,13 +155,13 @@ class DoclingParser:
 
         return chunks
 
-    def _process_element(self, element) -> DocumentChunk | None:
+    def _process_element(self, element: Any) -> DocumentChunk | None:
         """
         Process a document element and create a chunk.
-        
+
         Args:
             element: Document element from Docling
-            
+
         Returns:
             DocumentChunk or None
         """
@@ -184,42 +182,37 @@ class DoclingParser:
         # Determine chunk type
         chunk_type = self._determine_chunk_type(element, element_type)
 
-        return DocumentChunk(
-            text=text,
-            bbox=bbox,
-            chunk_type=chunk_type,
-            metadata=metadata
-        )
+        return DocumentChunk(text=text, bbox=bbox, chunk_type=chunk_type, metadata=metadata)
 
-    def _extract_text(self, element) -> str:
+    def _extract_text(self, element: Any) -> str:
         """Extract text content from an element."""
         # TextItem, SectionHeaderItem, ListItem, etc. have .text attribute
-        if hasattr(element, 'text') and isinstance(element.text, str):
+        if hasattr(element, "text") and isinstance(element.text, str):
             return element.text
 
         # TableItem - export to markdown or text
-        if hasattr(element, 'export_to_markdown'):
+        if hasattr(element, "export_to_markdown"):
             try:
                 return element.export_to_markdown()
-            except:
+            except Exception:
                 pass
 
         # Try export_to_text for other items
-        if hasattr(element, 'export_to_text'):
+        if hasattr(element, "export_to_text"):
             try:
                 return element.export_to_text()
-            except:
+            except Exception:
                 pass
 
         # GroupItem and other container items might not have text
         # Don't use __str__ as fallback - it returns repr
         return ""
 
-    def _extract_bbox(self, element) -> BoundingBox | None:
+    def _extract_bbox(self, element: Any) -> BoundingBox | None:
         """Extract bounding box from an element."""
         try:
             # Docling items have a 'prov' attribute which is a list of ProvenanceItem objects
-            if not hasattr(element, 'prov'):
+            if not hasattr(element, "prov"):
                 return None
 
             if not element.prov:
@@ -229,17 +222,17 @@ class DoclingParser:
             prov = element.prov[0] if isinstance(element.prov, list) else element.prov
 
             # ProvenanceItem has bbox and page_no attributes
-            if not hasattr(prov, 'bbox'):
+            if not hasattr(prov, "bbox"):
                 return None
 
             if prov.bbox is None:
                 return None
 
             bbox_obj = prov.bbox
-            page_no = prov.page_no if hasattr(prov, 'page_no') else 0
+            page_no = prov.page_no if hasattr(prov, "page_no") else 0
 
             # Docling's BoundingBox has attributes: l (left), t (top), r (right), b (bottom)
-            if not all(hasattr(bbox_obj, attr) for attr in ['l', 't', 'r', 'b']):
+            if not all(hasattr(bbox_obj, attr) for attr in ["l", "t", "r", "b"]):
                 return None
 
             return BoundingBox(
@@ -247,7 +240,7 @@ class DoclingParser:
                 y0=float(bbox_obj.t),
                 x1=float(bbox_obj.r),
                 y1=float(bbox_obj.b),
-                page=int(page_no)
+                page=int(page_no),
             )
 
         except Exception:
@@ -256,57 +249,57 @@ class DoclingParser:
 
         return None
 
-    def _extract_metadata(self, element) -> dict[str, Any]:
+    def _extract_metadata(self, element: Any) -> dict[str, Any]:
         """Extract metadata from an element."""
         metadata = {}
 
         # Get label if available
-        if hasattr(element, 'label'):
-            metadata['label'] = str(element.label)
+        if hasattr(element, "label"):
+            metadata["label"] = str(element.label)
 
         # Get page number from provenance
-        if hasattr(element, 'prov') and element.prov:
+        if hasattr(element, "prov") and element.prov:
             prov = element.prov[0] if isinstance(element.prov, list) else element.prov
-            if hasattr(prov, 'page_no'):
-                metadata['page'] = prov.page_no
+            if hasattr(prov, "page_no"):
+                metadata["page"] = prov.page_no
 
         # Get parent reference
-        if hasattr(element, 'parent') and element.parent:
-            metadata['parent'] = str(element.parent)
+        if hasattr(element, "parent") and element.parent:
+            metadata["parent"] = str(element.parent)
 
         # For tables - get dimensions
-        if hasattr(element, 'data'):
+        if hasattr(element, "data"):
             table_data = element.data
-            if hasattr(table_data, 'num_rows'):
-                metadata['num_rows'] = table_data.num_rows
-            if hasattr(table_data, 'num_cols'):
-                metadata['num_cols'] = table_data.num_cols
+            if hasattr(table_data, "num_rows"):
+                metadata["num_rows"] = table_data.num_rows
+            if hasattr(table_data, "num_cols"):
+                metadata["num_cols"] = table_data.num_cols
 
         # Get self reference
-        if hasattr(element, 'self_ref'):
-            metadata['self_ref'] = element.self_ref
+        if hasattr(element, "self_ref"):
+            metadata["self_ref"] = element.self_ref
 
         return metadata
 
-    def _determine_chunk_type(self, element, element_type: str) -> str:
+    def _determine_chunk_type(self, element: Any, element_type: str) -> str:
         """Determine the type of chunk based on element properties."""
         # Map Docling element types to chunk types
         type_mapping = {
-            'Title': 'title',
-            'SectionHeader': 'section_header',
-            'Paragraph': 'text',
-            'Text': 'text',
-            'Table': 'table',
-            'ListItem': 'list_item',
-            'Figure': 'figure',
-            'Caption': 'caption',
-            'Footnote': 'footnote',
-            'PageHeader': 'header',
-            'PageFooter': 'footer',
+            "Title": "title",
+            "SectionHeader": "section_header",
+            "Paragraph": "text",
+            "Text": "text",
+            "Table": "table",
+            "ListItem": "list_item",
+            "Figure": "figure",
+            "Caption": "caption",
+            "Footnote": "footnote",
+            "PageHeader": "header",
+            "PageFooter": "footer",
         }
 
         # Check label attribute
-        if hasattr(element, 'label'):
+        if hasattr(element, "label"):
             label = element.label.lower() if isinstance(element.label, str) else str(element.label)
             for key, value in type_mapping.items():
                 if key.lower() in label:
@@ -317,15 +310,15 @@ class DoclingParser:
             if key.lower() in element_type.lower():
                 return value
 
-        return 'text'  # default
+        return "text"  # default
 
     def _apply_chunking(self, chunks: list[DocumentChunk]) -> list[DocumentChunk]:
         """
         Apply chunking strategy to split large chunks.
-        
+
         Args:
             chunks: List of chunks to process
-            
+
         Returns:
             List of chunks after applying chunking strategy
         """
@@ -350,40 +343,44 @@ class DoclingParser:
         chunks = []
 
         # Split by sentences or paragraphs
-        sentences = text.split('. ')
+        sentences = text.split(". ")
         current_text = ""
 
         for sentence in sentences:
             if len(current_text) + len(sentence) < self.max_chunk_size:
-                current_text += sentence + '. '
+                current_text += sentence + ". "
             else:
                 if current_text:
-                    chunks.append(DocumentChunk(
-                        text=current_text.strip(),
-                        bbox=chunk.bbox,
-                        chunk_type=chunk.chunk_type,
-                        metadata={**chunk.metadata, 'is_split': True}
-                    ))
-                current_text = sentence + '. '
+                    chunks.append(
+                        DocumentChunk(
+                            text=current_text.strip(),
+                            bbox=chunk.bbox,
+                            chunk_type=chunk.chunk_type,
+                            metadata={**chunk.metadata, "is_split": True},
+                        )
+                    )
+                current_text = sentence + ". "
 
         if current_text:
-            chunks.append(DocumentChunk(
-                text=current_text.strip(),
-                bbox=chunk.bbox,
-                chunk_type=chunk.chunk_type,
-                metadata={**chunk.metadata, 'is_split': True}
-            ))
+            chunks.append(
+                DocumentChunk(
+                    text=current_text.strip(),
+                    bbox=chunk.bbox,
+                    chunk_type=chunk.chunk_type,
+                    metadata={**chunk.metadata, "is_split": True},
+                )
+            )
 
         return chunks
 
     def parse_to_json(self, file_path: str, output_path: str | None = None) -> str:
         """
         Parse document and save results as JSON.
-        
+
         Args:
             file_path: Path to input document
             output_path: Path to save JSON (optional)
-            
+
         Returns:
             JSON string of parsed chunks
         """
@@ -395,7 +392,7 @@ class DoclingParser:
         json_str = json.dumps(chunks_dict, indent=2, ensure_ascii=False)
 
         if output_path:
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(json_str)
 
         return json_str
@@ -406,15 +403,12 @@ class DoclingParser:
 
     def get_chunks_by_page(self, chunks: list[DocumentChunk], page: int) -> list[DocumentChunk]:
         """Filter chunks by page number."""
-        return [
-            chunk for chunk in chunks
-            if chunk.bbox and chunk.bbox.page == page
-        ]
+        return [chunk for chunk in chunks if chunk.bbox and chunk.bbox.page == page]
 
     def export_summary(self, chunks: list[DocumentChunk]) -> dict[str, Any]:
         """
         Generate a summary of parsed chunks.
-        
+
         Returns:
             Dictionary with statistics and information
         """
@@ -434,16 +428,16 @@ class DoclingParser:
                 page_counts[page] = page_counts.get(page, 0) + 1
 
         return {
-            'total_chunks': total_chunks,
-            'chunks_with_bbox': chunks_with_bbox,
-            'bbox_coverage': f"{chunks_with_bbox / total_chunks * 100:.1f}%" if total_chunks > 0 else "0%",
-            'chunks_by_type': type_counts,
-            'chunks_by_page': page_counts,
-            'total_pages': len(page_counts) if page_counts else 0
+            "total_chunks": total_chunks,
+            "chunks_with_bbox": chunks_with_bbox,
+            "bbox_coverage": f"{chunks_with_bbox / total_chunks * 100:.1f}%" if total_chunks > 0 else "0%",
+            "chunks_by_type": type_counts,
+            "chunks_by_page": page_counts,
+            "total_pages": len(page_counts) if page_counts else 0,
         }
 
 
-def main():
+def main() -> None:
     """Example usage of DoclingParser."""
 
     # Example 1: Basic usage
@@ -460,7 +454,7 @@ def main():
 
         # Display first few chunks
         for i, chunk in enumerate(chunks[:5]):
-            print(f"\n--- Chunk {i+1} ---")
+            print(f"\n--- Chunk {i + 1} ---")
             print(f"Type: {chunk.chunk_type}")
             print(f"Text: {chunk.text[:100]}...")
             print(f"BBox: {chunk.bbox}")
@@ -482,11 +476,11 @@ def main():
 
     # Example 2: Advanced usage with chunking
     print("\n\n=== Example 2: Advanced Parsing with Chunking ===")
-    advanced_parser = DoclingParser(
+    DoclingParser(
         extract_tables=True,
         extract_images=True,
         ocr_enabled=True,
-        max_chunk_size=500  # Split large chunks
+        max_chunk_size=500,  # Split large chunks
     )
 
     # Example 3: Filter by type
@@ -495,11 +489,11 @@ def main():
         chunks = parser.parse(doc_path)
 
         # Get only tables
-        tables = parser.get_chunks_by_type(chunks, 'table')
+        tables = parser.get_chunks_by_type(chunks, "table")
         print(f"Found {len(tables)} table chunks")
 
         # Get only titles
-        titles = parser.get_chunks_by_type(chunks, 'title')
+        titles = parser.get_chunks_by_type(chunks, "title")
         print(f"Found {len(titles)} title chunks")
 
     except Exception as e:

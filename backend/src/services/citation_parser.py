@@ -49,7 +49,7 @@ class CitationParser:
                             id=f"cite_{idx}",
                             chunk_id=chunk_id,
                             source_name=chunk.source_name,
-                            source_type=chunk.source_type.value,
+                            source_type=chunk.source_type,
                             content=chunk.content,
                             bbox=chunk.bbox.dict() if chunk.bbox else None,
                             metadata=chunk.metadata,

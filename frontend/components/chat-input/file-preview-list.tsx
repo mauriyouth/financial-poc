@@ -16,23 +16,6 @@ interface FilePreviewListProps {
     onRemove: (id: string) => void;
 }
 
-// Adapter to make File compatible with DocumentMetadata for preview
-const fileToMetadata = (file: File): DocumentMetadata => {
-    let thumbnail_url = undefined;
-    if (file.type.startsWith('image/')) {
-        thumbnail_url = URL.createObjectURL(file);
-    }
-
-    return {
-        id: 'temp-' + file.name,
-        filename: file.name,
-        upload_date: new Date().toISOString(),
-        status: 'pending',
-        file_type: file.type,
-        thumbnail_url
-    };
-};
-
 export function FilePreviewList({ files, onRemove }: FilePreviewListProps) {
     // Cleanup object URLs when component unmounts or files change
     // We only need to cleanup for temp files that were created locally

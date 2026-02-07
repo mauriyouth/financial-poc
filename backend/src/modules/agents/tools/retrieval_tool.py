@@ -1,14 +1,17 @@
 """Retrieval tool for AI agents to search document chunks."""
 
-from typing import Optional
-from loguru import logger
+from collections.abc import Callable, Coroutine
+from typing import Any
 
+from src.core.logging import logger
 from src.models.entities.chunk_entities import SourceType
 from src.modules.embeddings.gemini_embedder import GeminiEmbedder
 from src.stores.opensearch.chunk_store import ChunkStore
 
 
-def create_retrieval_tool(chunk_store: ChunkStore, embedder: GeminiEmbedder):
+def create_retrieval_tool(
+    chunk_store: ChunkStore, embedder: GeminiEmbedder
+) -> Callable[[str, int, list[str] | None], Coroutine[Any, Any, str]]:
     """
     Create retrieval tool for agents.
 
@@ -22,8 +25,8 @@ def create_retrieval_tool(chunk_store: ChunkStore, embedder: GeminiEmbedder):
 
     async def retrieve_chunks(
         query: str,
-        limit: int = 5,
-        source_types: Optional[list[str]] = None,
+        limit: int,
+        source_types: list[str],
     ) -> str:
         """
         Retrieve relevant document chunks for a query.
@@ -33,14 +36,18 @@ def create_retrieval_tool(chunk_store: ChunkStore, embedder: GeminiEmbedder):
 
         Args:
             query: The search query or question
-            limit: Maximum number of chunks to retrieve (default: 5)
-            source_types: Filter by source types (uploaded_file, web_page, sec_filing, etc.)
+            limit: Maximum number of chunks to retrieve (default: 5). Pass None to use default.
+            source_types: Filter by source types (uploaded_file, web_page, sec_filing, etc.). Pass None for no filter.
 
         Returns:
             Formatted chunks with citation markers for referencing sources
         """
         try:
             logger.info(f"Retrieval tool called with query: {query}")
+
+            # Handle defaults since ADK doesn't support default parameters
+            if limit is None:
+                limit = 5
 
             # Generate query embedding
             query_embedding = await embedder.embed_query(query)

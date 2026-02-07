@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocumentMetadata, getDocumentDownloadUrl } from '@/lib/api/documents';
 import { cn } from '@/lib/utils';
-import { PDFPreview } from './pdf-preview';
+import dynamic from 'next/dynamic';
+const PDFPreview = dynamic(() => import('./pdf-preview').then(mod => mod.PDFPreview), { ssr: false });
 import { ExcelPreview } from './excel-preview';
 import { ImagePreview } from './image-preview';
 import { GenericPreview } from './generic-preview';
@@ -21,6 +22,13 @@ export interface DocumentPreviewProps {
     isFullscreen?: boolean;
     onToggleFullscreen?: () => void;
     activePage?: number;
+    highlight?: {
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
 }
 
 export function DocumentPreview({
@@ -31,7 +39,8 @@ export function DocumentPreview({
     onCloseDocument,
     isFullscreen = false,
     onToggleFullscreen,
-    activePage
+    activePage,
+    highlight
 }: DocumentPreviewProps) {
     const currentId = activeId || documents[0]?.id;
 
@@ -84,7 +93,7 @@ export function DocumentPreview({
     const renderPreview = () => {
         // PowerPoint files are auto-converted to PDF on upload, so use PDF preview
         if (isPDF || isPowerPoint) {
-            return <PDFPreview documentUrl={documentUrl} page={activePage} />;
+            return <PDFPreview documentUrl={documentUrl} page={activePage} highlight={highlight} />;
         }
 
         if (isExcel) {

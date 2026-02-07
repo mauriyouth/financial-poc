@@ -4,7 +4,6 @@ import { MarkdownContent } from '@/components/markdown-content';
 import { DocumentMetadata } from '@/lib/api/documents';
 import { Citation } from '@/lib/api/chat';
 import { Badge } from '@/components/ui/badge';
-import { MessageContent } from './MessageContent';
 
 interface AssistantMessageProps {
     content: string;
@@ -13,6 +12,7 @@ interface AssistantMessageProps {
     citations?: Citation[];  // NEW: Citations with bbox
     onSourceClick?: (source: DocumentMetadata) => void;
     onCitationClick?: (citationId: string) => void;
+    citationStatus?: Record<string, 'valid' | 'invalid' | 'loading' | 'error'>;
 }
 
 export function AssistantMessage({
@@ -21,7 +21,8 @@ export function AssistantMessage({
     sources,
     citations,
     onSourceClick,
-    onCitationClick
+    onCitationClick,
+    citationStatus
 }: AssistantMessageProps) {
     return (
         <div className="flex-1 min-w-0">
@@ -50,6 +51,7 @@ export function AssistantMessage({
                     content={content}
                     citations={citations}
                     onCitationClick={onCitationClick}
+                    citationStatus={citationStatus}
                 />
             </div>
 

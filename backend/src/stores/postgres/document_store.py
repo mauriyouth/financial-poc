@@ -23,9 +23,11 @@ class DocumentStore:
             await session.refresh(document)
             return document
 
-    async def list_documents(self) -> list[Document]:
+    async def list_documents(self, thread_id: str | None = None) -> list[Document]:
         async with AsyncSessionLocal() as session:
             statement = select(Document)
+            if thread_id:
+                statement = statement.where(Document.thread_id == thread_id)
             result = await session.execute(statement)
             return result.scalars().all()
 

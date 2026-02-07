@@ -73,7 +73,7 @@ class DocumentProcessingService:
             logger.info(f"Generated {len(embeddings)} embeddings")
 
             # 3. Add embeddings to chunk metadata
-            for chunk, embedding in zip(chunks, embeddings):
+            for chunk, _ in zip(chunks, embeddings, strict=False):
                 # Store embedding separately for OpenSearch k-NN
                 chunk.metadata["has_embedding"] = True
 
@@ -82,7 +82,7 @@ class DocumentProcessingService:
 
             # Create chunks with embeddings
             chunks_with_embeddings = []
-            for chunk_create, embedding in zip(chunks, embeddings):
+            for chunk_create, embedding in zip(chunks, embeddings, strict=False):
                 chunk_dict = chunk_create.model_dump()
                 chunk_dict["id"] = f"chunk_{source_id}_{len(chunks_with_embeddings)}"
                 chunk_dict["embedding"] = embedding
@@ -112,9 +112,6 @@ class DocumentProcessingService:
         except Exception as e:
             logger.error(f"Error processing document {source_name}: {e}")
             raise
-        except Exception as e:
-            logger.error(f"Error processing document {source_name}: {e}")
-            raise
 
     async def _generate_summary(self, chunks: list, source_name: str) -> str:
         """Generate a summary of the document using the ADK connector."""
@@ -136,7 +133,7 @@ class DocumentProcessingService:
             Please provide a comprehensive summary of the following document ({source_name}).
             Focus on key insights, data points, and conclusions.
             The summary should be concise but informative (around 200-400 words).
-            
+
             Document Content:
             {full_text}
             """

@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Bot, Check, ChevronUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Check, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getModels, Model } from '@/lib/api/chat';
 
 interface ModelSelectorProps {

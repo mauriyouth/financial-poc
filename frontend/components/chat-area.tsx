@@ -19,9 +19,11 @@ interface ChatAreaProps {
     selectedAgent?: string | null;
     onAgentChange?: (agent: string | null) => void;
     onCitationClick?: (citationId: string) => void;
+    threadId?: string;
+    citationStatus?: Record<string, 'valid' | 'invalid' | 'loading' | 'error'>;
 }
 
-export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, model, onModelChange, selectedAgent, onAgentChange, onCitationClick }: ChatAreaProps) {
+export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, model, onModelChange, selectedAgent, onAgentChange, onCitationClick, threadId, citationStatus }: ChatAreaProps) {
 
     const [input, setInput] = useState("");
     const [dataSource, setDataSource] = useState<DataSource>('knowledge');
@@ -99,6 +101,7 @@ export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, mo
                         messages={messages}
                         onSourceClick={onSourceClick}
                         onCitationClick={onCitationClick}
+                        citationStatus={citationStatus}
                     />
 
                     {isLoading && <LoadingIndicator />}
@@ -137,6 +140,7 @@ export function ChatArea({ messages, onSendMessage, isLoading, onSourceClick, mo
                         onModelChange={onModelChange}
                         selectedAgent={selectedAgent}
                         onAgentChange={onAgentChange}
+                        threadId={threadId}
                     />
                 </div>
             </div>

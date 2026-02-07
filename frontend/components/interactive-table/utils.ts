@@ -26,7 +26,7 @@ export function parseTableContent(children: React.ReactNode): {
     const rows: TableCell[][] = [];
 
     // Helper to extract text from React nodes recursively
-    const extractText = (node: any): string => {
+    const extractText = (node: React.ReactNode): string => {
         if (typeof node === 'string') return node;
         if (typeof node === 'number') return String(node);
         if (node === null || node === undefined) return '';
@@ -36,36 +36,30 @@ export function parseTableContent(children: React.ReactNode): {
         }
 
         if (React.isValidElement(node)) {
-            return extractText((node.props as any).children);
+            const props = node.props as { children?: React.ReactNode };
+            return extractText(props.children);
         }
 
-        if (node.props?.children) {
-            return extractText(node.props.children);
-        }
-
+        // Handle other object types or fragments if needed, though idiomatic React usually covers above
         return '';
     };
 
     // Parse table structure
-    const processChildren = (elements: any) => {
-        const elementArray = Array.isArray(elements) ? elements : [elements];
-
-        elementArray.forEach((element: any) => {
+    const processChildren = (elements: React.ReactNode) => {
+        React.Children.forEach(elements, (element) => {
             if (!React.isValidElement(element)) return;
 
             const key = String(element.key || '');
-            const elementProps = (element.props as any);
+            const elementProps = element.props as { children?: React.ReactNode };
 
             // Handle thead
             if (key.startsWith('thead')) {
-                const theadChildren = React.Children.toArray(elementProps.children);
-                theadChildren.forEach((tr: any) => {
+                React.Children.forEach(elementProps.children, (tr) => {
                     if (React.isValidElement(tr)) {
-                        const trProps = (tr.props as any);
-                        const thElements = React.Children.toArray(trProps.children);
-                        thElements.forEach((th: any) => {
+                        const trProps = tr.props as { children?: React.ReactNode };
+                        React.Children.forEach(trProps.children, (th) => {
                             if (React.isValidElement(th)) {
-                                const thProps = (th.props as any);
+                                const thProps = th.props as { children?: React.ReactNode };
                                 headers.push({
                                     content: thProps.children,
                                     text: extractText(thProps.children).trim()
@@ -78,21 +72,21 @@ export function parseTableContent(children: React.ReactNode): {
 
             // Handle tbody
             if (key.startsWith('tbody')) {
-                const tbodyChildren = React.Children.toArray(elementProps.children);
-                tbodyChildren.forEach((tr: any) => {
+                React.Children.forEach(elementProps.children, (tr) => {
                     if (React.isValidElement(tr)) {
-                        const trProps = (tr.props as any);
+                        const trProps = tr.props as { children?: React.ReactNode };
                         const row: TableCell[] = [];
-                        const tdElements = React.Children.toArray(trProps.children);
-                        tdElements.forEach((td: any) => {
+
+                        React.Children.forEach(trProps.children, (td) => {
                             if (React.isValidElement(td)) {
-                                const tdProps = (td.props as any);
+                                const tdProps = td.props as { children?: React.ReactNode };
                                 row.push({
                                     content: tdProps.children,
                                     text: extractText(tdProps.children).trim()
                                 });
                             }
                         });
+
                         if (row.length > 0) {
                             rows.push(row);
                         }

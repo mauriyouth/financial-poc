@@ -28,7 +28,7 @@ export interface Citation {
     source_type: string;
     content: string;
     bbox?: BBox;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 export interface Message {
@@ -41,7 +41,7 @@ export interface Message {
     attachments?: DocumentMetadata[];  // For files attached to user messages
     created_at: string;
     thinking_steps?: string[]; // Legacy: raw text thinking
-    reasoning_events?: any[]; // Structured reasoning events for ReasoningPanel
+    reasoning_events?: StreamEvent[]; // Structured reasoning events for ReasoningPanel
     agent_transitions?: Array<{ from: string; to: string; reason: string }>;  // NEW: Agent transitions
 }
 
@@ -92,8 +92,8 @@ export interface StreamEvent {
     model?: string;
     tools_available?: string[];
     tool_name?: string;
-    arguments?: Record<string, any>;
-    result?: Record<string, any>;
+    arguments?: Record<string, unknown>;
+    result?: Record<string, unknown>;
     error_code?: string;
     error_message?: string;
 }

@@ -2,7 +2,6 @@
 
 from google.adk.agents import LlmAgent
 
-from src.configurations.opensearch import OpenSearchSettings
 from src.connectors.google_adk_connector import GoogleADKConnector
 from src.connectors.opensearch_connector import OpenSearchConnector
 from src.core.logging import logger
@@ -59,8 +58,9 @@ When responding:
 2. **Use the retrieval tool for Details**: For specific facts, figures, or claims, you MUST use the retrieval tool and provide citations.
 3. **NEVER make up or infer information** - only state what is explicitly in the retrieved chunks or the provided summaries.
 4. **Specific findings MUST include a citation** using the format {{cite:chunk_id}}
-5. **If the retrieval tool returns no results** and the summary is insufficient, clearly state: "I could not find relevant information."
-6. **Do NOT answer from general knowledge** when discussing uploaded documents
+5. **STRICT RULE**: You MUST ONLY use chunk IDs that were returned by the retrieval tool in the current turn. DO NOT invent IDs. DO NOT use IDs from previous turns unless re-retrieved.
+6. **If the retrieval tool returns no results** and the summary is insufficient, clearly state: "I could not find relevant information."
+7. **Do NOT answer from general knowledge** when discussing uploaded documents
 
 ## How to handle document questions:
 

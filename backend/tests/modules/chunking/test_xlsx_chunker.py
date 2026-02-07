@@ -87,7 +87,7 @@ async def test_xlsx_chunker_sheet_metadata(mock_xlsx_path):
     chunks = await chunker.chunk(file_path=mock_xlsx_path, source_id="test_xlsx_002", source_name="test.xlsx")
 
     # Verify metadata includes sheet information
-    sheet_names = set(chunk.metadata["sheet_name"] for chunk in chunks)
+    sheet_names = {chunk.metadata["sheet_name"] for chunk in chunks}
     assert "Financial Summary" in sheet_names
     assert "Market Analysis" in sheet_names
 

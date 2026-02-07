@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChatArea } from '@/components/chat-area';
 import { DocumentPreview } from '@/components/document-preview';
@@ -13,8 +13,7 @@ import {
     getMessages,
     streamMessage,
     getModels,
-    Agent,
-    getAgents,
+    StreamEvent,
 } from '@/lib/api/chat';
 import { DocumentMetadata, getChunk } from '@/lib/api/documents';
 import { useToast } from '@/hooks/use-toast';
@@ -36,65 +35,20 @@ export function ChatContent() {
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
     const [activeRightTab, setActiveRightTab] = useState<string>('sources');
     const [activePage, setActivePage] = useState<number | undefined>(undefined);
+    const [highlight, setHighlight] = useState<{
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | undefined>(undefined);
 
     const { toast } = useToast();
 
-    useEffect(() => {
-        const loadModels = async () => {
-            try {
-                const models = await getModels();
-                if (models && models.length > 0) {
-                    const storedModel = localStorage.getItem('selectedModel');
-                    if (storedModel) {
-                        setModel(storedModel);
-                    } else {
-                        setModel(models[0].id);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to load models:', error);
-                setModel('anthropic:claude-opus-4-5-20251101');
-            }
-        };
-        loadModels();
-        loadConversations();
+    // Use a ref for processMessageStream to avoid circular dependency with handleRetry
+    const processMessageStreamRef = useRef<(conversationId: string, content: string, modelId?: string) => Promise<void>>(undefined);
 
-        const idFromUrl = searchParams.get('id');
-        if (idFromUrl) {
-            setActiveId(idFromUrl);
-        }
-
-        const pendingMessage = localStorage.getItem('pendingMessage');
-        if (pendingMessage && idFromUrl) {
-            try {
-                const { content, files, model: pendingModel, agent: pendingAgent } = JSON.parse(pendingMessage);
-                localStorage.removeItem('pendingMessage');
-                if (pendingModel) setModel(pendingModel);
-                if (pendingAgent) setSelectedAgent(pendingAgent);
-
-                let finalContent = content;
-                if (files && files.length > 0) {
-                    const fileContext = files.map((f: any) => `[Attached File: ${f.filename} (ID: ${f.id})]`).join('\n');
-                    finalContent = `${fileContext}\n\n${content}`;
-                }
-
-                setTimeout(() => {
-                    handleSendMessage(finalContent);
-                }, 500);
-            } catch (e) {
-                console.error('Failed to parse pending message', e);
-            }
-        }
-    }, [searchParams]);
-
-    useEffect(() => {
-        if (activeId) {
-            loadMessages(activeId);
-            router.push(`/chat?id=${activeId}`, { scroll: false });
-        }
-    }, [activeId, router]);
-
-    const loadConversations = async () => {
+    const loadConversations = useCallback(async () => {
         try {
             const data = await getConversations();
             if (data.length > 0 && !activeId && !searchParams.get('id')) {
@@ -102,25 +56,55 @@ export function ChatContent() {
             }
         } catch (error) {
             console.error("Failed to load conversations", error);
+            // Only show toast if it's not a 404 (which implies no conversations) or handle gracefully
+            // But getConversations usually returns empty array, so error likely means API down.
+            setTimeout(() => {
+                toast({
+                    variant: "destructive",
+                    title: "Connection Issue",
+                    description: "Failed to load conversations. Please check your connection.",
+                });
+            }, 0);
         }
-    };
+    }, [activeId, searchParams, toast]);
 
-    const loadMessages = async (id: string) => {
+    const loadMessages = useCallback(async (id: string) => {
         try {
             const data = await getMessages(id);
             setMessages(data);
         } catch (error) {
             console.error("Failed to load messages", error);
+            setTimeout(() => {
+                toast({
+                    variant: "destructive",
+                    title: "Error loading messages",
+                    description: "Failed to retrieve chat history. Please try refreshing.",
+                });
+            }, 0);
         }
-    };
+    }, [toast]);
 
-    const processMessageStream = async (conversationId: string, content: string, modelId?: string) => {
+    // Define handleRetry first, using the ref
+    const handleRetry = useCallback((content: string, modelId?: string) => {
+        setMessages(prev => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg.role === 'assistant' && lastMsg.content.includes('❌ **Error**')) {
+                return prev.slice(0, -1);
+            }
+            return prev;
+        });
+
+        if (activeId && processMessageStreamRef.current) {
+            processMessageStreamRef.current(activeId, content, modelId);
+        }
+    }, [activeId]);
+
+    const processMessageStream = useCallback(async (conversationId: string, content: string, modelId?: string) => {
         setIsLoading(true);
         let hasError = false;
 
         try {
             let thinkingBuffer = '';
-            let reasoningEvents: any[] = [];
             let currentAgent = '';
             let previousAgent = '';
             let provider = "anthropic";
@@ -149,7 +133,7 @@ export function ChatContent() {
                 return prev;
             });
 
-            await streamMessage(conversationId, content, provider, (event: any) => {
+            await streamMessage(conversationId, content, provider, (event: StreamEvent) => {
                 setMessages(prev => {
                     const newMessages = [...prev];
                     const lastMsg = newMessages[newMessages.length - 1];
@@ -159,7 +143,9 @@ export function ChatContent() {
                                 lastMsg.reasoning_events = [];
                             }
                             lastMsg.reasoning_events.push(event);
-                        } else if (event.type === 'agent_start') {
+                        }
+
+                        if (event.type === 'agent_start') {
                             previousAgent = currentAgent;
                             currentAgent = event.agent_name || '';
                             if (previousAgent && previousAgent !== currentAgent) {
@@ -185,16 +171,18 @@ export function ChatContent() {
                             lastMsg.thinking_steps = undefined;
                             setIsLoading(false);
 
-                            toast({
-                                variant: "destructive",
-                                title: "Error generating response",
-                                description: event.content,
-                                action: (
-                                    <ToastAction altText="Try again" onClick={() => handleRetry(content, modelId)}>
-                                        Try again
-                                    </ToastAction>
-                                ),
-                            });
+                            setTimeout(() => {
+                                toast({
+                                    variant: "destructive",
+                                    title: "Error generating response",
+                                    description: event.content,
+                                    action: (
+                                        <ToastAction altText="Try again" onClick={() => handleRetry(content, modelId)}>
+                                            Try again
+                                        </ToastAction>
+                                    ),
+                                });
+                            }, 0);
                         }
                     }
                     return newMessages;
@@ -215,38 +203,31 @@ export function ChatContent() {
             });
             hasError = true;
 
-            toast({
-                variant: "destructive",
-                title: "Connection Error",
-                description: errorMessage,
-                action: (
-                    <ToastAction altText="Try again" onClick={() => handleRetry(content, modelId)}>
-                        Try again
-                    </ToastAction>
-                ),
-            });
+            setTimeout(() => {
+                toast({
+                    variant: "destructive",
+                    title: "Connection Error",
+                    description: errorMessage,
+                    action: (
+                        <ToastAction altText="Try again" onClick={() => handleRetry(content, modelId)}>
+                            Try again
+                        </ToastAction>
+                    ),
+                });
+            }, 0);
 
         } finally {
             if (!hasError) setIsLoading(false);
             loadMessages(conversationId);
         }
-    };
+    }, [selectedAgent, toast, loadMessages, handleRetry]); // Added handleRetry
 
-    const handleRetry = (content: string, modelId?: string) => {
-        setMessages(prev => {
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg.role === 'assistant' && lastMsg.content.includes('❌ **Error**')) {
-                return prev.slice(0, -1);
-            }
-            return prev;
-        });
+    // Update ref when processMessageStream changes
+    useEffect(() => {
+        processMessageStreamRef.current = processMessageStream;
+    }, [processMessageStream]);
 
-        if (activeId) {
-            processMessageStream(activeId, content, modelId);
-        }
-    };
-
-    const handleSendMessage = async (content: string) => {
+    const handleSendMessage = useCallback(async (content: string) => {
         if (!content.trim()) return;
         let conversationId = activeId;
         if (!conversationId) {
@@ -257,11 +238,13 @@ export function ChatContent() {
                 await loadConversations();
             } catch (error) {
                 console.error("Failed to create conversation", error);
-                toast({
-                    variant: "destructive",
-                    title: "Failed to start chat",
-                    description: "Could not create a new conversation. Please try again.",
-                });
+                setTimeout(() => {
+                    toast({
+                        variant: "destructive",
+                        title: "Failed to start chat",
+                        description: "Could not create a new conversation. Please try again.",
+                    });
+                }, 0);
                 return;
             }
         }
@@ -278,7 +261,71 @@ export function ChatContent() {
 
         setMessages(prev => [...prev, tempUserMsg]);
         await processMessageStream(currentActiveId, content, model);
-    };
+    }, [activeId, loadConversations, model, processMessageStream, toast]);
+
+    useEffect(() => {
+        const loadModels = async () => {
+            try {
+                const models = await getModels();
+                if (models && models.length > 0) {
+                    const storedModel = localStorage.getItem('selectedModel');
+                    if (storedModel) {
+                        setModel(storedModel);
+                    } else {
+                        setModel(models[0].id);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load models:', error);
+                setTimeout(() => {
+                    toast({
+                        variant: "destructive",
+                        title: "API Error",
+                        description: "Failed to load models. The API might be unavailable.",
+                    });
+                }, 0);
+                // Keep default just in case, or maybe not? User said "fallback values that do not make any sense".
+                // But undefined model might crash things. Let's keep it but at least the toast explains why.
+                setModel('anthropic:claude-opus-4-5-20251101');
+            }
+        };
+        loadModels();
+        loadConversations();
+
+        const idFromUrl = searchParams.get('id');
+        if (idFromUrl) {
+            setActiveId(idFromUrl);
+        }
+
+        const pendingMessage = localStorage.getItem('pendingMessage');
+        if (pendingMessage && idFromUrl) {
+            try {
+                const { content, files, model: pendingModel, agent: pendingAgent } = JSON.parse(pendingMessage);
+                localStorage.removeItem('pendingMessage');
+                if (pendingModel) setModel(pendingModel);
+                if (pendingAgent) setSelectedAgent(pendingAgent);
+
+                let finalContent = content;
+                if (files && files.length > 0) {
+                    const fileContext = files.map((f: DocumentMetadata) => `[Attached File: ${f.filename} (ID: ${f.id})]`).join('\n');
+                    finalContent = `${fileContext}\n\n${content}`;
+                }
+
+                setTimeout(() => {
+                    handleSendMessage(finalContent);
+                }, 500);
+            } catch (e) {
+                console.error('Failed to parse pending message', e);
+            }
+        }
+    }, [searchParams, loadConversations, handleSendMessage, toast]);
+
+    useEffect(() => {
+        if (activeId) {
+            loadMessages(activeId);
+            router.push(`/chat?id=${activeId}`, { scroll: false });
+        }
+    }, [activeId, router, loadMessages]); // Added all dependencies
 
     const handleSourceClick = (source: DocumentMetadata) => {
         setPreviewDocuments(prev => {
@@ -307,38 +354,142 @@ export function ChatContent() {
         setPreviewDocuments([]);
         setActivePreviewId(null);
         setActivePage(undefined);
+        setHighlight(undefined);
         setIsPreviewFullscreen(false);
         setActiveRightTab('sources');
     };
 
+
+    // Citation Hydration Logic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [citationMap, setCitationMap] = useState<Record<string, any>>({});
+    const fetchingCitationsRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        const fetchCitations = async () => {
+            const newIds = new Set<string>();
+            const regex = /{{cite:([^}]+)}}/g;
+
+            messages.forEach(msg => {
+                if (msg.role === 'assistant') {
+                    let match;
+                    while ((match = regex.exec(msg.content)) !== null) {
+                        const id = match[1];
+                        if (!citationMap[id] && !fetchingCitationsRef.current.has(id)) {
+                            newIds.add(id);
+                        }
+                    }
+                }
+            });
+
+            if (newIds.size === 0) return;
+
+            // Mark as fetching
+            newIds.forEach(id => fetchingCitationsRef.current.add(id));
+
+            // Fetch in parallel
+            const promises = Array.from(newIds).map(async (id) => {
+                try {
+                    const chunk = await getChunk(id);
+                    if (chunk) {
+                        return { id, chunk };
+                    }
+                    return { id, chunk: null };
+                } catch {
+                    return { id, chunk: null };
+                }
+            });
+
+            const results = await Promise.all(promises);
+
+            setCitationMap(prev => {
+                const next = { ...prev };
+                results.forEach(res => {
+                    if (res.chunk) {
+                        next[res.id] = {
+                            id: res.id,
+                            chunk_id: res.chunk.id,
+                            source_id: res.chunk.source_id,
+                            source_name: res.chunk.source_name,
+                            source_type: 'document',
+                            content: res.chunk.content,
+                            bbox: res.chunk.bbox,
+                            metadata: res.chunk.metadata
+                        };
+                    } else {
+                        // Mark as missing/error
+                        next[res.id] = { error: true };
+                    }
+                    fetchingCitationsRef.current.delete(res.id);
+                });
+                return next;
+            });
+        };
+
+        fetchCitations();
+    }, [messages, citationMap]);
+
     const handleCitationClick = async (chunkId: string) => {
+        const cached = citationMap[chunkId];
+
+        if (cached?.error) {
+            toast({
+                variant: "destructive",
+                title: "Citation Unavailable",
+                description: "The source for this citation could not be found.",
+            });
+            return;
+        }
+
         try {
-            const chunk = await getChunk(chunkId);
+            // Use cached data if available, otherwise try fetch
+            let chunk = cached;
             if (!chunk) {
-                console.warn(`Chunk ${chunkId} not found`);
+                const fresh = await getChunk(chunkId);
+                if (fresh) {
+                    chunk = {
+                        id: fresh.id,
+                        chunk_id: fresh.id,
+                        source_id: fresh.source_id,
+                        source_name: fresh.source_name,
+                        bbox: fresh.bbox,
+                        metadata: fresh.metadata
+                    };
+                }
+            }
+
+            if (!chunk) {
+                toast({
+                    variant: "destructive",
+                    title: "Citation Error",
+                    description: "Could not retrieve document details.",
+                });
                 return;
             }
 
             const docId = chunk.source_id;
-            const page = chunk.metadata.page_number;
+            const page = chunk.metadata?.page_number || chunk.bbox?.page;
 
             // Check if document is already in preview list
             const existingDoc = previewDocuments.find(d => d.id === docId);
             if (!existingDoc) {
-                // If we don't have full metadata, create a minimal object
-                // Ideally we should fetch document metadata but this is faster
                 const newDoc: DocumentMetadata = {
                     id: docId,
-                    filename: chunk.source_name,
+                    filename: chunk.source_name || "Document",
                     status: 'completed',
                     upload_date: new Date().toISOString(),
-                    file_type: chunk.source_name.split('.').pop()
+                    file_type: chunk.source_name?.split('.').pop()
                 };
                 setPreviewDocuments(prev => [...prev, newDoc]);
             }
 
             setActivePreviewId(docId);
-            setActivePage(page);
+            if (page) setActivePage(page);
+            if (chunk.bbox) {
+                setHighlight(chunk.bbox);
+            } else {
+                setHighlight(undefined);
+            }
             setIsRightPanelOpen(true);
             setActiveRightTab('preview');
         } catch (e) {
@@ -346,14 +497,29 @@ export function ChatContent() {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Failed to locate citation source.",
+                description: "Failed to open citation.",
             });
         }
     };
 
     const allCitations = messages
-        .filter(m => m.role === 'assistant' && m.citations)
-        .flatMap(m => m.citations || []);
+        .filter(m => m.role === 'assistant')
+        .flatMap(m => {
+            const regex = /{{cite:([^}]+)}}/g;
+            const cites = [];
+            let match;
+            // Reset regex state just in case
+            while ((match = regex.exec(m.content)) !== null) {
+                const id = match[1];
+                const cached = citationMap[id];
+                if (cached && !cached.error) {
+                    cites.push(cached);
+                }
+            }
+            return cites;
+        });
+
+
 
     return (
         <div className="flex-1 w-full h-full overflow-hidden">
@@ -370,12 +536,14 @@ export function ChatContent() {
                                 selectedAgent={selectedAgent}
                                 onAgentChange={setSelectedAgent}
                                 onCitationClick={handleCitationClick}
+                                threadId={activeId || undefined}
+                                citationStatus={citationMap}
                             />
                         </ResizablePanel>
 
                         <ResizableHandle withHandle className="w-1.5 hover:bg-secondary/50 transition-colors" />
 
-                        <ResizablePanel defaultSize="30" minSize="15" maxSize="70" collapsible={true} onResize={(size: any) => { if (size === 0) setIsRightPanelOpen(false); }}>
+                        <ResizablePanel defaultSize="30" minSize="15" maxSize="70" collapsible={true} onResize={(size) => { if (Number(size) === 0) setIsRightPanelOpen(false); }}>
                             <div className="h-full flex flex-col bg-card">
                                 <Tabs value={activeRightTab} onValueChange={setActiveRightTab} className="flex-1 flex flex-col min-h-0">
                                     <div className="px-4 pt-4 border-b bg-muted/30">
@@ -412,12 +580,14 @@ export function ChatContent() {
                                                     onActiveChange={(id) => {
                                                         setActivePreviewId(id);
                                                         setActivePage(undefined);
+                                                        setHighlight(undefined);
                                                     }}
                                                     onClose={handleCloseAll}
                                                     onCloseDocument={onRemoveDocument}
                                                     isFullscreen={isPreviewFullscreen}
                                                     onToggleFullscreen={() => setIsPreviewFullscreen(!isPreviewFullscreen)}
                                                     activePage={activePage}
+                                                    highlight={highlight}
                                                 />
                                             ) : (
                                                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm p-8 text-center">
@@ -444,6 +614,8 @@ export function ChatContent() {
                             selectedAgent={selectedAgent}
                             onAgentChange={setSelectedAgent}
                             onCitationClick={handleCitationClick}
+                            threadId={activeId || undefined}
+                            citationStatus={citationMap}
                         />
                     </div>
                     <div className="absolute right-4 top-4 z-50">

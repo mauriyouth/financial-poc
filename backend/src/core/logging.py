@@ -30,7 +30,7 @@ logger.add(
 
 # Intercept standard logging
 class InterceptHandler(logging.Handler):
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists
         try:
             level = logger.level(record.levelname).name
@@ -47,4 +47,4 @@ class InterceptHandler(logging.Handler):
 
 
 # Export logger and handler
-__all__ = ["logger", "InterceptHandler"]
+__all__ = ["InterceptHandler", "logger"]

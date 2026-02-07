@@ -4,7 +4,7 @@ import React from 'react';
 import { Citation } from '@/lib/api/chat';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Map } from "lucide-react";
+import { Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CitationsPanelProps {
@@ -44,18 +44,16 @@ export function CitationsPanel({ citations, onCitationClick, activeChunkId }: Ci
                                             <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
                                                 {index + 1}
                                             </span>
-                                            <p className="text-xs font-medium truncate text-muted-foreground">
-                                                {citation.source_name}
-                                            </p>
+                                            <p className="text-muted-foreground">Click on a citation in the chat to see details here, or &quot;View Source&quot; on a message.</p>
                                         </div>
-                                        {citation.metadata?.page_number && (
+                                        {!!citation.metadata?.page_number && (
                                             <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground whitespace-nowrap">
-                                                Page {citation.metadata.page_number}
+                                                Page {String(citation.metadata.page_number)}
                                             </span>
                                         )}
                                     </div>
                                     <p className="text-xs leading-relaxed text-foreground line-clamp-3 italic">
-                                        "{citation.content}"
+                                        &quot;{citation.content}&quot;
                                     </p>
                                 </div>
                             ))}

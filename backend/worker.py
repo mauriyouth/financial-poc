@@ -11,14 +11,13 @@ import os
 os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
 
 import logging
-import sys
+import os
 
-# Import loguru and interception handler
-from src.core.logging import logger, InterceptHandler
 from redis import Redis
 from rq import Worker
 
 from src.configurations.redis import settings
+from src.core.logging import InterceptHandler, logger
 
 # Redirect standard logging to Loguru
 logging.basicConfig(handlers=[InterceptHandler()], level=0)

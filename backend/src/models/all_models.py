@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 from sqlalchemy import Column
 from sqlmodel import JSON, Field, Relationship, SQLModel
@@ -80,9 +81,16 @@ class Document(SQLModel, table=True):
     metadata_: dict = Field(default={}, sa_column=Column("metadata", JSON))
 
     data_source_id: str | None = Field(default=None, foreign_key="data_sources.id")
+    thread_id: str | None = Field(default=None, foreign_key="conversations.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     data_source: DataSource | None = Relationship(back_populates="documents")
+    conversation: Optional["Conversation"] = Relationship(
+        sa_relationship_kwargs={
+            "primaryjoin": "Document.thread_id==Conversation.id",
+            "foreign_keys": "[Document.thread_id]",
+        }
+    )
 
 
 # Chat

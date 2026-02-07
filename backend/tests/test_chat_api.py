@@ -1,6 +1,5 @@
-import pytest
+import pytest  # noqa: I001
 from fastapi.testclient import TestClient
-
 from src.api.main import app
 
 

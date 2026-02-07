@@ -30,6 +30,7 @@ interface ChatInputProps {
     selectedAgent?: string | null;
     onAgentChange?: (agent: string | null) => void;
     className?: string;
+    threadId?: string;
 }
 
 export function ChatInput({
@@ -45,7 +46,8 @@ export function ChatInput({
     onModelChange,
     selectedAgent,
     onAgentChange,
-    className
+    className,
+    threadId
 }: ChatInputProps) {
     const [attachedDocs, setAttachedDocs] = useState<AttachedDocument[]>([]);
     const [isImproving, setIsImproving] = useState(false);
@@ -62,7 +64,7 @@ export function ChatInput({
 
         for (const doc of newDocs) {
             try {
-                const metadata = await uploadDocument(doc.file);
+                const metadata = await uploadDocument(doc.file, threadId);
                 setAttachedDocs(prev => prev.map(d =>
                     d.id === doc.id ? { ...d, metadata, isUploading: false } : d
                 ));

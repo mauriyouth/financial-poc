@@ -17,7 +17,7 @@ class GeminiConnector:
         else:
             self.client = None
             logger.warning("Gemini API key not configured")
-    
+
     def get_client(self) -> genai.Client | None:
         """Get the Gemini client."""
         return self.client

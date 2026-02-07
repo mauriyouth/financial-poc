@@ -12,12 +12,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-from src.configurations.database import DatabaseSettings
+from src.configurations.database import DatabaseSettings  # noqa: E402
 
 db_settings = DatabaseSettings()
 config.set_main_option("sqlalchemy.url", db_settings.SYNC_DATABASE_URL)
 
-from src.models.all_models import SQLModel
+from src.models.all_models import SQLModel  # noqa: E402
 
 target_metadata = SQLModel.metadata
 

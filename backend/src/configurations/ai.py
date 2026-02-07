@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field
@@ -36,7 +37,7 @@ class ModelConfigurations:
         self.providers: dict[str, ProviderConfig] = {}
         self._load_config()
 
-    def _load_config(self):
+    def _load_config(self) -> None:
         """Load configuration from YAML file."""
         if not self.config_path.exists():
             raise FileNotFoundError(f"Model configuration file not found: {self.config_path}")
@@ -106,7 +107,7 @@ class AISettings(BaseSettings):
     ADK_DEFAULT_TEMPERATURE: float = Field(..., description="Default temperature for Google ADK")
     MANAGER_THINKING_BUDGET: int = Field(default=1024, description="Token budget for manager thinking")
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         # Load model configurations from YAML
         self._model_configs = ModelConfigurations()

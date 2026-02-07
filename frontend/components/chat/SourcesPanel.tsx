@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { getWsBaseUrl } from "@/lib/config";
 import { DocumentMetadata, getDocuments, deleteDocument } from "@/lib/api/documents";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,9 +21,9 @@ export function SourcesPanel({ onDocumentClick, activeId }: SourcesPanelProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-    const fetchDocuments = async () => {
+    const fetchDocuments = useCallback(async () => {
         try {
-            const docs = await getDocuments();
+            const docs = await getDocuments(activeId);
             // Sort by creation date desc
             docs.sort((a, b) => new Date(b.upload_date).getTime() - new Date(a.upload_date).getTime());
             setDocuments(docs);
@@ -31,7 +32,7 @@ export function SourcesPanel({ onDocumentClick, activeId }: SourcesPanelProps) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [activeId]);
 
     const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
@@ -96,7 +97,6 @@ export function SourcesPanel({ onDocumentClick, activeId }: SourcesPanelProps) {
         let ws: WebSocket | null = null;
         try {
             // Dynamically import to avoid SSR issues if any, though "use client" handles it
-            const { getWsBaseUrl } = require("@/lib/config");
             ws = new WebSocket(`${getWsBaseUrl()}/ws`);
 
             ws.onmessage = (event) => {
@@ -125,7 +125,7 @@ export function SourcesPanel({ onDocumentClick, activeId }: SourcesPanelProps) {
         return () => {
             if (ws) ws.close();
         };
-    }, []);
+    }, [fetchDocuments]);
 
     const getStatusIcon = (status: string) => {
         switch (status) {

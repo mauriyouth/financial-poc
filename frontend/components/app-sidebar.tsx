@@ -57,8 +57,12 @@ export function AppSidebar({ activeConversationId: propsActiveId, onConversation
     useEffect(() => {
         // Fetch conversations regardless of page to keep sidebar updated if needed, 
         // but especially on chat page.
-        loadConversations();
-    }, [loadConversations]);
+        getConversations().then(data => {
+            setConversations(data);
+        }).catch(err => {
+            console.error("Failed to load conversations", err);
+        });
+    }, []);
 
     const handleNewChat = async () => {
         if (onNewChat) {

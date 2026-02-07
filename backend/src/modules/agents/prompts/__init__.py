@@ -7,7 +7,7 @@ prompts directory and can be retrieved by name.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import ClassVar, Optional
 
 from src.core.logging import logger
 
@@ -17,7 +17,7 @@ PROMPTS_DIR = Path(__file__).parent
 class PromptManager:
     """Manages system prompts for AI interactions."""
 
-    _cache: dict[str, str] = {}
+    _cache: ClassVar[dict[str, str]] = {}
 
     @classmethod
     def get_prompt(cls, name: str) -> str:

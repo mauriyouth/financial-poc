@@ -1,4 +1,5 @@
 import io
+from collections.abc import Iterator
 from typing import BinaryIO
 
 from src.core.storage import ensure_bucket_exists, get_minio_client, settings
@@ -43,6 +44,27 @@ class DocumentS3Store:
             return content
         except Exception as e:
             raise Exception(f"Failed to read from S3 storage: {e!s}") from e
+
+    def get_file_stream(self, file_path: str) -> Iterator[bytes]:
+        """
+        Get a file stream (generator) from S3 storage.
+
+        Args:
+            file_path: The key/path in the bucket
+
+        Yields:
+            bytes: chunks of file content
+        """
+        response = None
+        try:
+            response = get_minio_client().get_object(self.bucket_name, file_path)
+            yield from response.stream(32 * 1024)
+        except Exception as e:
+            raise Exception(f"Failed to stream from S3 storage: {e!s}") from e
+        finally:
+            if response:
+                response.close()
+                response.release_conn()
 
     def list_files(self, prefix: str) -> list:
         """

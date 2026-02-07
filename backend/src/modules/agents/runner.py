@@ -8,10 +8,10 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from src.core.logging import logger
+from src.models.all_models import Message
 from src.modules.agents.orchestrator_agent import OrchestratorAgent
 from src.modules.agents.plugins.streaming_reasoning_plugin import StreamingReasoningPlugin
 from src.modules.agents.types import AIResponse
-from src.models.all_models import Message
 
 
 class AgentRunner:
@@ -19,6 +19,7 @@ class AgentRunner:
 
     def __init__(self, orchestrator: OrchestratorAgent) -> None:
         self.orchestrator = orchestrator
+        self.background_tasks: set[asyncio.Task] = set()
 
     def get_available_agents(self) -> list[dict]:
         """Get list of available agents from the orchestrator's registry."""
@@ -231,7 +232,12 @@ class AgentRunner:
                     await output_queue.put(STOP_SIGNAL)
 
             plugin_task = asyncio.create_task(plugin_consumer())
-            _ = asyncio.create_task(agent_runner())
+            self.background_tasks.add(plugin_task)
+            plugin_task.add_done_callback(self.background_tasks.discard)
+
+            agent_task = asyncio.create_task(agent_runner())
+            self.background_tasks.add(agent_task)
+            agent_task.add_done_callback(self.background_tasks.discard)
 
             while True:
                 item = await output_queue.get()
@@ -330,7 +336,12 @@ class AgentRunner:
 
             # Start background tasks
             plugin_task = asyncio.create_task(plugin_consumer())
-            _ = asyncio.create_task(agent_runner())
+            self.background_tasks.add(plugin_task)
+            plugin_task.add_done_callback(self.background_tasks.discard)
+
+            agent_task = asyncio.create_task(agent_runner())
+            self.background_tasks.add(agent_task)
+            agent_task.add_done_callback(self.background_tasks.discard)
 
             # Yield events from the output queue as they arrive
             while True:
