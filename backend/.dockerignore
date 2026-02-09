@@ -1,0 +1,15 @@
+# Don't copy these files into Docker image
+.env
+.env.local
+.env.*
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+.ruff_cache
+.mypy_cache
+*.egg-info
+.git
+.gitignore
+README.md

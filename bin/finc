@@ -1,0 +1,191 @@
+#!/bin/bash
+set -e
+
+source "$(dirname "$0")/log.sh"
+
+COMMAND=$1
+shift
+
+function usage() {
+    log "info" "Usage: $0 {local-stack|deploy|build|destroy}"
+    exit 1
+}
+
+if [[ -z "$COMMAND" ]]; then
+    usage
+fi
+
+# Get current git hash for tagging
+GIT_HASH=$(git rev-parse --short HEAD)
+REGISTRY=${ARTIFACTORY_URL:-"local"} # Default to 'local' if not set
+
+function start_minikube() {
+    if ! minikube status | grep -q "Running"; then
+        log "info" "Starting Minikube..."
+        minikube start --driver=docker --cpus 4 --memory 8192 --addons=ingress
+        log "success" "Minikube started!"
+    else
+        log "success" "Minikube is already running."
+    fi
+    # Ensure kubectl context is set
+    eval $(minikube -p minikube docker-env)
+}
+
+case "$COMMAND" in
+    "local-stack")
+        start_minikube
+        if ! pgrep -f "minikube tunnel" > /dev/null; then
+            log "info" "Starting minikube tunnel..."
+            # Using sudo for tunnel as it requires privileges for ports < 1024
+            sudo minikube tunnel > /dev/null 2>&1 &
+        else
+            log "info" "Minikube tunnel already running."
+        fi
+        log "info" "Deploying managed services..."
+        # Create namespace if not exists
+        kubectl create namespace managed-services --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Add helm repos
+        # First remove if it exists to avoid conflicts, and specifically remove known dead/commercial repos
+        helm repo remove kubernetes-dashboard 2>/dev/null || true
+        helm repo add valkey https://valkey-io.github.io/valkey-helm/
+        helm repo add minio https://charts.min.io/
+        helm repo add opensearch https://opensearch-project.github.io/helm-charts/
+        
+        # Update our relevant repositories
+        log "info" "Updating relevant Helm repositories..."
+        helm repo update valkey minio opensearch || log "warning" "Some repo updates failed, but continuing..."
+
+        # Build chart dependencies
+        log "info" "Updating chart dependencies..."
+        helm dependency update ./infra/helm/managed-services
+
+        # Deploy managed services chart
+        helm upgrade --install managed-services ./infra/helm/managed-services \
+            --namespace managed-services \
+            --create-namespace \
+            --timeout 5m \
+            --wait
+        
+        log "success" "Managed services deployed!"
+        ;;
+    
+    "deploy")
+        start_minikube
+        log "info" "Deploying application..."
+        # Create namespace if not exists
+        kubectl create namespace develop --dry-run=client -o yaml | kubectl apply -f -
+
+        # Point to minikube docker daemon (redundant if start_minikube called, but safe)
+        eval $(minikube -p minikube docker-env)
+
+        # --- Configuration & Secrets Management ---
+        log "info" "Syncing configuration..."
+        
+        # Check for .env.local and create ConfigMap
+        if [ -f ".env.local" ]; then
+            # Delete valid existing configmap to ensure update (recreating is safer for --from-env-file updates sometimes)
+            kubectl delete configmap financial-poc-config -n develop --ignore-not-found
+            kubectl create configmap financial-poc-config \
+                --namespace develop \
+                --from-env-file=.env.local
+            log "success" "ConfigMap 'financial-poc-config' created from .env.local"
+        else
+            log "warning" ".env.local not found! Skipping ConfigMap creation."
+        fi
+
+        # Check for .env.secret or .secrets.local and create Secret
+        SECRET_SOURCE=""
+        if [ -f ".env.secret" ]; then
+            SECRET_SOURCE=".env.secret"
+        elif [ -f ".secrets.local" ]; then
+            SECRET_SOURCE=".secrets.local"
+        fi
+
+        if [ -n "$SECRET_SOURCE" ]; then
+            kubectl delete secret financial-poc-secrets -n develop --ignore-not-found
+            kubectl create secret generic financial-poc-secrets \
+                --namespace develop \
+                --from-env-file="$SECRET_SOURCE"
+            log "success" "Secret 'financial-poc-secrets' created from $SECRET_SOURCE"
+        else
+            log "warning" "No secret file (.env.secret or .secrets.local) found! Skipping Secret creation."
+        fi
+        # -------------------------------------------
+
+        # Deploy logic
+        log "info" "Deploying version: $GIT_HASH"
+        
+        # If we are local (no registry), we might need to build inside minikube or assume they are there via 'finc build' which set docker-env
+        # But 'finc build' might have been run in a different shell without minikube docker-env if it pushes to registry.
+        # Let's support both. For now, assuming local dev workflow:
+        
+        log "info" "Deploying Helm Chart..."
+        
+        # Prepare registry arg
+        REGISTRY_ARG=""
+        if [ "$REGISTRY" != "local" ]; then
+            REGISTRY_ARG="--set global.image.registry=$REGISTRY"
+        fi
+
+        helm upgrade --install financial-poc ./infra/helm/financial-poc \
+            --namespace develop \
+            --create-namespace \
+            --set global.image.tag=$GIT_HASH \
+            --set global.image.pullPolicy=IfNotPresent \
+            $REGISTRY_ARG \
+            --timeout 5m \
+            --wait
+
+        log "success" "Application deployed!"
+        ;;
+
+    "build")
+        log "info" "Building images with tag: $GIT_HASH"
+        
+        # If using local registry (Minikube), point to it
+        if [ "$REGISTRY" == "local" ]; then
+             start_minikube
+        fi
+
+        # Define images
+        IMAGES=("api" "worker" "frontend")
+        
+        for SERVICE in "${IMAGES[@]}"; do
+            IMAGE_NAME="financial-poc-$SERVICE"
+            FULL_IMAGE_NAME="$IMAGE_NAME:$GIT_HASH"
+            
+            # If registry is remote, prepend it
+            if [ "$REGISTRY" != "local" ]; then
+                FULL_IMAGE_NAME="$REGISTRY/$FULL_IMAGE_NAME"
+            fi
+            
+            log "info" "Building $SERVICE -> $FULL_IMAGE_NAME"
+            
+            # Context is now always root to allow copying from infra/ and backend/
+            CONTEXT="."
+            DOCKERFILE="infra/images/$SERVICE/Dockerfile"
+
+            docker build -t $FULL_IMAGE_NAME -f $DOCKERFILE $CONTEXT
+            
+            if [ "$REGISTRY" != "local" ]; then
+                log "info" "Pushing $FULL_IMAGE_NAME..."
+                docker push $FULL_IMAGE_NAME
+            fi
+        done
+        log "success" "Build complete."
+        ;;
+
+    "destroy")
+        log "warning" "Destroying stack..."
+        helm uninstall financial-poc -n develop || true
+        helm uninstall managed-services -n managed-services || true
+        kubectl delete namespace develop --ignore-not-found
+        kubectl delete namespace managed-services --ignore-not-found
+        log "success" "Stack destroyed."
+        ;;
+        
+    *)
+        usage
+        ;;
+esac

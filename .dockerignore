@@ -1,0 +1,49 @@
+# Version Control
+.git
+.gitignore
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/.ruff_cache/
+**/.mypy_cache/
+**/.venv/
+**/venv/
+**/ENV/
+**/env/
+**/tests/
+
+# Node / Frontend
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+frontend/.swc/
+frontend/.storybook/
+frontend/storybook-static/
+
+# Tooling / IDE
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+
+# Project Artifacts
+brain/
+artifacts/
+.gemini/
+*.local
+.env
+.env.*
+!.env.example
+
+# Infra
+infra/terraform/.terraform/
+infra/terraform/*.tfstate*
+managed-services/

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    app: worker
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: "{{ if .Values.global.image.registry }}{{ .Values.global.image.registry }}/{{ end }}{{ .Values.worker.image.repository }}:{{ .Values.global.image.tag }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          command: ["/bin/bash", "/app/entrypoint.sh"]
+          envFrom:
+            - configMapRef:
+                name: financial-poc-config
+            - secretRef:
+                name: financial-poc-secrets

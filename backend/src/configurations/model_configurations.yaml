@@ -1,0 +1,293 @@
+# AI Model Configurations
+# This file defines all available AI models and their settings
+# Models are fetched from provider APIs and configured here
+# Use the list_ai_models.sh script to discover new models
+
+providers:
+  anthropic:
+    models:
+      # Top 3 enabled models
+      - id: "claude-3-5-sonnet-20240620"
+        name: "Claude 3.5 Sonnet"
+        max_tokens: 8192
+        enabled: true
+        supports_thinking: true
+        description: "Balanced intelligence and speed"
+      
+      - id: "claude-3-opus-20240229"
+        name: "Claude 3 Opus"
+        max_tokens: 4096
+        enabled: true
+        supports_thinking: true
+        description: "Most capable model for highly complex tasks"
+      
+      - id: "claude-3-haiku-20240307"
+        name: "Claude 3 Haiku"
+        max_tokens: 4096
+        enabled: true
+        supports_thinking: false
+        description: "Fastest and most compact model"
+      
+      # Disabled models
+      - id: "claude-opus-4-1-20250805"
+        name: "Claude Opus 4.1"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: true
+        description: "Previous Opus version"
+      
+      - id: "claude-opus-4-20250514"
+        name: "Claude Opus 4"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: true
+        description: "Earlier Opus 4 version"
+      
+      - id: "claude-sonnet-4-20250514"
+        name: "Claude Sonnet 4"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: true
+        description: "Earlier Sonnet 4 version"
+      
+      - id: "claude-3-7-sonnet-20250219"
+        name: "Claude 3.7 Sonnet"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: true
+        description: "Claude 3.7 Sonnet model"
+      
+      - id: "claude-3-5-haiku-20241022"
+        name: "Claude 3.5 Haiku"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "Claude 3.5 Haiku - fast and efficient"
+      
+      - id: "claude-3-haiku-20240307"
+        name: "Claude 3 Haiku"
+        max_tokens: 4096
+        enabled: false
+        supports_thinking: false
+        description: "Legacy Claude 3 Haiku model"
+
+  google:
+    models:
+      # Top 3 enabled models
+      - id: "gemini-2.5-flash"
+        name: "Gemini 2.5 Flash"
+        max_tokens: 65536
+        enabled: true
+        supports_thinking: false
+        description: "Latest Flash model with 1M token input"
+      
+      - id: "gemini-2.5-pro"
+        name: "Gemini 2.5 Pro"
+        max_tokens: 65536
+        enabled: true
+        supports_thinking: false
+        description: "Most capable Gemini model with 1M token input"
+      
+      - id: "gemini-2.0-flash-exp"
+        name: "Gemini 2.0 Flash (Experimental)"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "Experimental 2.0 Flash model"
+      
+      # Disabled models
+      - id: "gemini-2.0-flash"
+        name: "Gemini 2.0 Flash"
+        max_tokens: 8192
+        enabled: true
+        supports_thinking: false
+        description: "Gemini 2.0 Flash stable"
+      
+      - id: "gemini-2.0-flash-001"
+        name: "Gemini 2.0 Flash 001"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "Gemini 2.0 Flash version 001"
+      
+      - id: "gemini-2.0-flash-lite-001"
+        name: "Gemini 2.0 Flash Lite 001"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "Lightweight version"
+      
+      - id: "gemini-2.0-flash-lite"
+        name: "Gemini 2.0 Flash Lite"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "Lightweight Flash model"
+      
+      - id: "gemini-2.0-flash-lite-preview-02-05"
+        name: "Gemini 2.0 Flash Lite Preview"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "Preview version"
+      
+      - id: "gemini-exp-1206"
+        name: "Gemini Experimental 1206"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Experimental model from Dec 2024"
+      
+      - id: "gemini-2.5-flash-preview-tts"
+        name: "Gemini 2.5 Flash TTS"
+        max_tokens: 16384
+        enabled: false
+        supports_thinking: false
+        description: "Text-to-speech optimized"
+      
+      - id: "gemini-2.5-pro-preview-tts"
+        name: "Gemini 2.5 Pro TTS"
+        max_tokens: 16384
+        enabled: false
+        supports_thinking: false
+        description: "Pro model with TTS"
+      
+      - id: "gemma-3-1b-it"
+        name: "Gemma 3 1B Instruct"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "Lightweight 1B parameter model"
+      
+      - id: "gemma-3-4b-it"
+        name: "Gemma 3 4B Instruct"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "4B parameter model"
+      
+      - id: "gemma-3-12b-it"
+        name: "Gemma 3 12B Instruct"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "12B parameter model"
+      
+      - id: "gemma-3-27b-it"
+        name: "Gemma 3 27B Instruct"
+        max_tokens: 8192
+        enabled: false
+        supports_thinking: false
+        description: "27B parameter model"
+      
+      - id: "gemma-3n-e4b-it"
+        name: "Gemma 3N E4B Instruct"
+        max_tokens: 2048
+        enabled: false
+        supports_thinking: false
+        description: "Nano 4B model"
+      
+      - id: "gemma-3n-e2b-it"
+        name: "Gemma 3N E2B Instruct"
+        max_tokens: 2048
+        enabled: false
+        supports_thinking: false
+        description: "Nano 2B model"
+      
+      - id: "gemini-flash-latest"
+        name: "Gemini Flash Latest"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Latest Flash model alias"
+      
+      - id: "gemini-flash-lite-latest"
+        name: "Gemini Flash Lite Latest"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Latest Flash Lite alias"
+      
+      - id: "gemini-pro-latest"
+        name: "Gemini Pro Latest"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Latest Pro model alias"
+      
+      - id: "gemini-2.5-flash-lite"
+        name: "Gemini 2.5 Flash Lite"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Lightweight 2.5 Flash"
+      
+      - id: "gemini-2.5-flash-image"
+        name: "Gemini 2.5 Flash Image"
+        max_tokens: 32768
+        enabled: false
+        supports_thinking: false
+        description: "Image generation optimized"
+      
+      - id: "gemini-2.5-flash-preview-09-2025"
+        name: "Gemini 2.5 Flash Preview"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Preview version Sep 2025"
+      
+      - id: "gemini-2.5-flash-lite-preview-09-2025"
+        name: "Gemini 2.5 Flash Lite Preview"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Lite preview Sep 2025"
+      
+      - id: "gemini-3-pro-preview"
+        name: "Gemini 3 Pro Preview"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Next generation Pro preview"
+      
+      - id: "gemini-3-flash-preview"
+        name: "Gemini 3 Flash Preview"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Next generation Flash preview"
+      
+      - id: "gemini-3-pro-image-preview"
+        name: "Gemini 3 Pro Image Preview"
+        max_tokens: 32768
+        enabled: false
+        supports_thinking: false
+        description: "Image capabilities preview"
+      
+      - id: "nano-banana-pro-preview"
+        name: "Nano Banana Pro Preview"
+        max_tokens: 32768
+        enabled: false
+        supports_thinking: false
+        description: "Nano model preview"
+      
+      - id: "gemini-robotics-er-1.5-preview"
+        name: "Gemini Robotics ER 1.5"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Robotics optimized model"
+      
+      - id: "gemini-2.5-computer-use-preview-10-2025"
+        name: "Gemini 2.5 Computer Use"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Computer control capabilities"
+      
+      - id: "deep-research-pro-preview-12-2025"
+        name: "Deep Research Pro"
+        max_tokens: 65536
+        enabled: false
+        supports_thinking: false
+        description: "Research-optimized model"

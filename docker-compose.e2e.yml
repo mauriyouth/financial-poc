@@ -1,0 +1,161 @@
+services:
+  test-db:
+    image: postgres:17-alpine
+    container_name: financial-poc-test-db
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: testdb
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  test-valkey:
+    image: valkey/valkey:8-alpine
+    container_name: financial-poc-test-valkey
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  test-minio:
+    image: minio/minio:latest
+    container_name: financial-poc-test-minio
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    environment:
+      MINIO_ROOT_USER: miniotest
+      MINIO_ROOT_PASSWORD: miniotestpassword
+    command: server --console-address ":9003" /data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  test-opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: financial-poc-test-opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_SECURITY_PLUGIN=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9201:9200"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health?local=true"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test-api:
+    build:
+      context: .
+      dockerfile: infra/images/api/Dockerfile
+    container_name: financial-poc-test-api
+    environment:
+      - POSTGRES_HOST=test-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=testuser
+      - POSTGRES_PASSWORD=testpassword
+      - POSTGRES_DB=testdb
+      - REDIS_HOST=test-valkey
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=""
+      - MINIO_ENDPOINT=test-minio:9000
+      - MINIO_ACCESS_KEY=miniotest
+      - MINIO_SECRET_KEY=miniotestpassword
+      - MINIO_SECURE=false
+      - MINIO_BUCKET=test-bucket
+      - OPENSEARCH_HOST=test-opensearch
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_USER=admin
+      - OPENSEARCH_PASSWORD=admin
+      - OPENSEARCH_USE_SSL=false
+      - OPENSEARCH_VERIFY_CERTS=false
+      - ANTHROPIC_API_KEY=test-key
+      - GOOGLE_API_KEY=test-key
+      - ANTHROPIC_MODEL=claude-3-sonnet
+      - ANTHROPIC_MAX_TOKENS=4096
+      - ADK_DEFAULT_MODEL=gemini-2.0-flash
+      - ADK_DEFAULT_TEMPERATURE=0.7
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-valkey:
+        condition: service_healthy
+      test-minio:
+        condition: service_healthy
+      test-opensearch:
+        condition: service_healthy
+
+  test-worker:
+    build:
+      context: .
+      dockerfile: infra/images/worker/Dockerfile
+    container_name: financial-poc-test-worker
+    environment:
+      - POSTGRES_HOST=test-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=testuser
+      - POSTGRES_PASSWORD=testpassword
+      - POSTGRES_DB=testdb
+      - REDIS_HOST=test-valkey
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=""
+      - MINIO_ENDPOINT=test-minio:9000
+      - MINIO_ACCESS_KEY=miniotest
+      - MINIO_SECRET_KEY=miniotestpassword
+      - MINIO_SECURE=false
+      - MINIO_BUCKET=test-bucket
+      - OPENSEARCH_HOST=test-opensearch
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_USER=admin
+      - OPENSEARCH_PASSWORD=admin
+      - OPENSEARCH_USE_SSL=false
+      - OPENSEARCH_VERIFY_CERTS=false
+      - ANTHROPIC_API_KEY=test-key
+      - GOOGLE_API_KEY=test-key
+      - ANTHROPIC_MODEL=claude-3-sonnet
+      - ANTHROPIC_MAX_TOKENS=4096
+      - ADK_DEFAULT_MODEL=gemini-2.0-flash
+      - ADK_DEFAULT_TEMPERATURE=0.7
+    depends_on:
+      test-db:
+        condition: service_healthy
+      test-valkey:
+        condition: service_healthy
+      test-minio:
+        condition: service_healthy
+      test-opensearch:
+        condition: service_healthy
+
+  test-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: financial-poc-test-frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://test-api:8000
+    depends_on:
+      - test-api

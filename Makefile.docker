@@ -1,0 +1,25 @@
+# Makefile for running docker services
+.PHONY: up down logs worker-logs
+
+up:
+\t@echo "Starting all services..."
+\tdocker-compose -f infra/local-stack/docker-compose.yml up -d
+
+down:
+\t@echo "Stopping all services..."
+\tdocker-compose -f infra/local-stack/docker-compose.yml down
+
+logs:
+\tdocker-compose -f infra/local-stack/docker-compose.yml logs -f
+
+worker-logs:
+\t@echo "Following worker logs..."
+\tdocker-compose -f infra/local-stack/docker-compose.yml logs -f worker
+
+rebuild-worker:
+\t@echo "Rebuilding worker..."
+\tdocker-compose -f infra/local-stack/docker-compose.yml up -d --build worker
+
+restart-worker:
+\t@echo "Restarting worker..."
+\tdocker-compose -f infra/local-stack/docker-compose.yml restart worker

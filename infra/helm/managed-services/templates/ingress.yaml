@@ -1,0 +1,53 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: managed-services-ingress
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: "1024m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: minio.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: managed-services-minio
+                port:
+                  number: 9000
+    - host: minio-console.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: managed-services-minio-console
+                port:
+                  number: 9001
+    - host: opensearch.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opensearch-cluster-master
+                port:
+                  number: 9200
+    - host: opensearch-dashboard.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: managed-services-opensearch-dashboards
+                port:
+                  number: 5601
+{{- end -}}

@@ -1,0 +1,71 @@
+{{- if .Values.postgresql.enabled -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: managed-services-postgresql
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  postgres-password: {{ .Values.postgresql.auth.postgresPassword | b64enc | quote }}
+  password: {{ .Values.postgresql.auth.password | b64enc | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: managed-services-postgresql
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.postgresql.service.type | default "ClusterIP" }}
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: tcp-postgresql
+  selector:
+    app: postgresql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: managed-services-postgresql
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: managed-services-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql
+  template:
+    metadata:
+      labels:
+        app: postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: {{ .Values.postgresql.image | default "postgres:17-alpine" | quote }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.auth.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: managed-services-postgresql
+                  key: postgres-password
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.auth.database | quote }}
+          ports:
+            - containerPort: 5432
+              name: postgresql
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ .Values.global.storageClass | default "standard" | quote }}
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.persistence.size | default "8Gi" | quote }}
+{{- end -}}
